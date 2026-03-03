@@ -34,9 +34,13 @@ public:
 	TSoftObjectPtr<UWorld> LobbyMap;
 	
 protected:
+	
+	void OpenExternalInviteDialog();
+	
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> PersonInviting, const FOnlineSessionSearchResult& InviteResult);
 	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 	
@@ -44,4 +48,5 @@ private:
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
 	FDelegateHandle FindSessionsCompleteDelegateHandle;
 	FDelegateHandle JoinSessionCompleteDelegateHandle;
+	FDelegateHandle InviteAcceptedDelegateHandle;
 };

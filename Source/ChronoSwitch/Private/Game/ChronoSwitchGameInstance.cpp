@@ -5,6 +5,7 @@
 
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystemUtils.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 
 // To Do: Test if GetWorld() can be reliably used in GameInstance
 
@@ -17,6 +18,10 @@ void UChronoSwitchGameInstance::Init()
 	if (IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(GetWorld()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Found Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString());
+		IOnlineSessionPtr SessionInterface = OnlineSubsystem ? OnlineSubsystem->GetSessionInterface() : nullptr;
+		
+		if (!SessionInterface.IsValid()) return;
+		InviteAcceptedDelegateHandle = SessionInterface->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnInviteAccepted));
 	}
 	else
 	{
@@ -83,6 +88,7 @@ void UChronoSwitchGameInstance::OnCreateSessionComplete(FName SessionName, bool 
 	if (bWasSuccessful)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnSessionCreatedSuccess"));
+		
 		if (!LobbyMap.IsNull())
 		{
 			FString TravelURL = FString::Printf(TEXT("%s?listen"), *LobbyMap.ToSoftObjectPath().GetLongPackageName());
@@ -92,6 +98,8 @@ void UChronoSwitchGameInstance::OnCreateSessionComplete(FName SessionName, bool 
 		{
 			UE_LOG(LogTemp, Error, TEXT("LobbyMap is not set in GameInstance!"));
 		}
+		
+		OpenExternalInviteDialog();
 	}
 }
 
@@ -107,7 +115,6 @@ void UChronoSwitchGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
 		JoinSessionCompleteDelegateHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(FOnJoinSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnJoinSessionComplete));
 		
-		//Need to use specific Session name
 		SessionInterface->JoinSession(0, NAME_GameSession, SessionSearch->SearchResults[0]);
 	}
 }
@@ -118,7 +125,7 @@ void UChronoSwitchGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoin
 	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
 	
 	SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
-
+	
 	if (Result == EOnJoinSessionCompleteResult::Success)
 	{
 		if (APlayerController* PC = GetFirstLocalPlayerController())
@@ -128,6 +135,34 @@ void UChronoSwitchGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoin
 			{
 				PC->ClientTravel(JoinURL, ETravelType::TRAVEL_Absolute);
 			}
+		}
+	}
+}
+
+void UChronoSwitchGameInstance::OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> PersonInviting, const FOnlineSessionSearchResult& InviteResult)
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
+	//SessionInterface->ClearOnSessionUserInviteAcceptedDelegate_Handle(InviteAcceptedDelegateHandle);
+	if (bWasSuccessful && InviteResult.IsValid())
+	{
+		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
+		JoinSessionCompleteDelegateHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(FOnJoinSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnJoinSessionComplete));
+	
+		SessionInterface->JoinSession(LocalUserNum, NAME_GameSession, InviteResult);
+	}
+}
+
+void UChronoSwitchGameInstance::OpenExternalInviteDialog()
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
+	{
+		IOnlineExternalUIPtr ExternalUI = Subsystem->GetExternalUIInterface();
+		if (ExternalUI.IsValid())
+		{
+			ExternalUI->ShowInviteUI(0, NAME_GameSession);
 		}
 	}
 }
