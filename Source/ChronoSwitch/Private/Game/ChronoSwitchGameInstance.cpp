@@ -17,7 +17,6 @@ void UChronoSwitchGameInstance::Init()
 	if (IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(GetWorld()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Found Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString());
-		SessionInterface = OnlineSubsystem->GetSessionInterface();
 	}
 	else
 	{
@@ -29,6 +28,9 @@ void UChronoSwitchGameInstance::Init()
 
 void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers)
 {
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
 	if (!SessionInterface.IsValid()) return;
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Host Joining Logic"));
 	FOnlineSessionSettings SessionSettings;
@@ -41,19 +43,27 @@ void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers)
 	SessionSettings.bUseLobbiesIfAvailable = true;
 	// This functionalities should help with using steam functionalities such as Friends Invites
 
-	SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(FOnCreateSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnCreateSessionComplete));
+	// Store the handle to clear it later
+	SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+	CreateSessionCompleteDelegateHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(FOnCreateSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnCreateSessionComplete));
+	
 	SessionInterface->CreateSession(0, NAME_GameSession, SessionSettings);
 }
 
 void UChronoSwitchGameInstance::FindJoinSession()
 {
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
 	if (!SessionInterface.IsValid()) return;
 
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 	SessionSearch->MaxSearchResults = 10; // We should need less
 	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
-	SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FOnFindSessionsCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnFindSessionsComplete));
+	SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
+	FindSessionsCompleteDelegateHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FOnFindSessionsCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnFindSessionsComplete));
+	
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 }
 
@@ -63,21 +73,40 @@ void UChronoSwitchGameInstance::FindJoinSession()
 
 void UChronoSwitchGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
+	// Cleanup the delegate
+	SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnSessionCreated"));
 	if (bWasSuccessful)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnSessionCreatedSuccess"));
-		// Maybe wait for other player
-		// Travel to map as a Listen Server
-		GetWorld()->ServerTravel("/Game/ChronoSwitch/Testing/Levels/L_GameplayTest?listen");
+		if (!LobbyMap.IsNull())
+		{
+			FString TravelURL = FString::Printf(TEXT("%s?listen"), *LobbyMap.ToSoftObjectPath().GetLongPackageName());
+			GetWorld()->ServerTravel(TravelURL);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("LobbyMap is not set in GameInstance!"));
+		}
 	}
 }
 
 void UChronoSwitchGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 {
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
+	SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
+
 	if (bWasSuccessful && SessionSearch->SearchResults.Num() > 0)
 	{
-		SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(FOnJoinSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnJoinSessionComplete));
+		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
+		JoinSessionCompleteDelegateHandle = SessionInterface->AddOnJoinSessionCompleteDelegate_Handle(FOnJoinSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnJoinSessionComplete));
+		
 		//Need to use specific Session name
 		SessionInterface->JoinSession(0, NAME_GameSession, SessionSearch->SearchResults[0]);
 	}
@@ -85,6 +114,11 @@ void UChronoSwitchGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 
 void UChronoSwitchGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	IOnlineSessionPtr SessionInterface = Subsystem ? Subsystem->GetSessionInterface() : nullptr;
+	
+	SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
+
 	if (Result == EOnJoinSessionCompleteResult::Success)
 	{
 		if (APlayerController* PC = GetFirstLocalPlayerController())

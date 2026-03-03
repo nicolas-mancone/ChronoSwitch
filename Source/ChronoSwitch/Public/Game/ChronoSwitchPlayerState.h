@@ -58,6 +58,8 @@ public:
 	
 	UFUNCTION(BlueprintAuthorityOnly, Category = "Timeline")
 	void SetCanSwitchTimeline(bool bNewState);
+	
+	virtual void CopyProperties(APlayerState* PlayerState) override;
 
 protected:
 	// --- Replicated Properties ---

@@ -93,6 +93,18 @@ void AChronoSwitchPlayerState::SetCanSwitchTimeline(bool bNewState)
 	bCanSwitchTimeline = bNewState;
 }
 
+void AChronoSwitchPlayerState::CopyProperties(APlayerState* PlayerState)
+{
+	Super::CopyProperties(PlayerState);
+
+	if (AChronoSwitchPlayerState* NewPS = Cast<AChronoSwitchPlayerState>(PlayerState))
+	{
+		NewPS->TimelineID = this->TimelineID;
+		NewPS->bVisorActive = this->bVisorActive;
+		NewPS->bCanSwitchTimeline = this->bCanSwitchTimeline;
+	}
+}
+
 void AChronoSwitchPlayerState::Multicast_TimelineChanged_Implementation(uint8 NewID)
 {
 	// Update local state on all clients immediately.

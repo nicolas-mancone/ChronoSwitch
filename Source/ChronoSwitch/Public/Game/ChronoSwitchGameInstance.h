@@ -29,11 +29,19 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FindJoinSession();
 	
+	/** The map to travel to when hosting a session. Format: "/Game/Path/To/Map" */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Session")
+	TSoftObjectPtr<UWorld> LobbyMap;
+	
 protected:
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
-
-	IOnlineSessionPtr SessionInterface;
+	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	
+private:
+	FDelegateHandle CreateSessionCompleteDelegateHandle;
+	FDelegateHandle FindSessionsCompleteDelegateHandle;
+	FDelegateHandle JoinSessionCompleteDelegateHandle;
 };
