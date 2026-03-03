@@ -4,7 +4,6 @@
 #include "Gameplay/TimelineActors/ChronalAnchorGrid.h"
 #include "Characters/ChronoSwitchCharacter.h"
 #include "Components/BoxComponent.h"
-#include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Game/ChronoSwitchPlayerState.h"
 
@@ -21,11 +20,9 @@ AChronalAnchorGrid::AChronalAnchorGrid()
 	BarrierMesh = CreateDefaultSubobject<UStaticMeshComponent>("BarrierMesh");
 	GridBorder1 = CreateDefaultSubobject<UStaticMeshComponent>("GridBorder1");
 	GridBorder2 = CreateDefaultSubobject<UStaticMeshComponent>("GridBorder2");
-	EntranceDirectionArrow = CreateDefaultSubobject<UArrowComponent>("EntranceDirectionArrow");
 	GridBorder1->SetupAttachment(SceneRoot);
 	GridBorder2->SetupAttachment(SceneRoot);
 	BarrierMesh->SetupAttachment(SceneRoot);
-	EntranceDirectionArrow->SetupAttachment(SceneRoot);
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");
 	BoxCollider->SetupAttachment(SceneRoot);
 	
@@ -44,8 +41,6 @@ AChronalAnchorGrid::AChronalAnchorGrid()
 void AChronalAnchorGrid::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Forward Vector:\nx: %.2f, y: %.2f, z: %.2f"), GetActorForwardVector().X, GetActorForwardVector().Y, GetActorForwardVector().Z));
 	
 	if (BoxCollider)
 	{
