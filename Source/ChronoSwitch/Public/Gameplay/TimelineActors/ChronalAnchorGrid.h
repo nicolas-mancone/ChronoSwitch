@@ -7,6 +7,7 @@
 
 class AChronoSwitchCharacter;
 class UBoxComponent;
+class UArrowComponent;
 
 /**
  * Enum to easly specify in editor the timeline to force onto the players
@@ -73,6 +74,10 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	UStaticMeshComponent* GridBorder2;
+	
+	// Entering the barrier in the direction of the EntranceDirection arrow activates the C.A.G.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	UArrowComponent* EntranceDirectionArrow;
 	
 	/** Collider box that triggers the effect of the barrier */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
