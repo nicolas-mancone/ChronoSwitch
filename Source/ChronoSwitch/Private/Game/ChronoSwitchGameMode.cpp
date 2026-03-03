@@ -3,14 +3,13 @@
 
 #include "ChronoSwitch/Public/Game/ChronoSwitchGameMode.h"
 
+#include "Game/ChronoSwitchGameState.h"
+
 
 AChronoSwitchGameMode::AChronoSwitchGameMode()
 {
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnBPClass(TEXT("/Game/Blueprints/BP_ChronoSwitchCharacter"));
-	if (PlayerPawnBPClass.Class != NULL)
-	{
-		DefaultPawnClass = PlayerPawnBPClass.Class;
-	}
+	bUseSeamlessTravel = true;
+	bIsFirstLevel = false;
 }
 
 void AChronoSwitchGameMode::StartPlay()
@@ -34,4 +33,17 @@ void AChronoSwitchGameMode::StartPlay()
 	// }
 }
 
+void AChronoSwitchGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
 
+	if (bIsFirstLevel && NewPlayer)
+	{
+		if (AChronoSwitchGameState* ChronoGS = Cast<AChronoSwitchGameState>(GetWorld()->GetGameState()))
+		{
+			ChronoGS->SetTimeSwitchMode(ETimeSwitchMode::None);
+			ChronoGS->SetGlobalTimeline(0);
+			ChronoGS->SetGlobalVisorState(false);
+		}
+	}
+}

@@ -653,10 +653,6 @@ void AChronoSwitchCharacter::ExecuteTimeSwitchLogic()
 			const uint8 CurrentID = MyPS->GetTimelineID();
 			const uint8 NewID = (CurrentID == 0) ? 1 : 0;
 			MyPS->RequestTimelineChange(NewID);
-			if (GrabbedComponent)
-			{
-				Release();
-			}
 			break;
 		}
 		case ETimeSwitchMode::CrossPlayer:
@@ -684,7 +680,6 @@ void AChronoSwitchCharacter::Server_RequestOtherPlayerSwitch_Implementation()
 				const uint8 CurrentID = OtherPS->GetTimelineID();
 				const uint8 NewID = (CurrentID == 0) ? 1 : 0;
 				OtherPS->SetTimelineID(NewID); // Authoritative call
-				OtherChar->Release();
 
 				// Force immediate replication to minimize desync.
 				OtherPS->ForceNetUpdate();
@@ -768,6 +763,11 @@ void AChronoSwitchCharacter::HandleTimelineUpdate(uint8 NewTimelineID)
 	// and the Replication (OnRep_TimelineID) trigger this function in the same frame/network update.
 	const ECollisionChannel TargetChannel = (NewTimelineID == 0) ? ECC_GameTraceChannel1 : ECC_GameTraceChannel2;
 	if (GetCapsuleComponent() && GetCapsuleComponent()->GetCollisionObjectType() == TargetChannel) return;
+	
+	if (GrabbedComponent)
+	{
+		Release();
+	}
 	
 	UpdateCollisionChannel(NewTimelineID);
 

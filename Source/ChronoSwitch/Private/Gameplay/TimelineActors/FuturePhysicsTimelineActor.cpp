@@ -12,6 +12,8 @@ AFuturePhysicsTimelineActor::AFuturePhysicsTimelineActor()
 	// This overrides the default behavior of PhysicsTimelineActor which sets PastMesh as Root.
 	if (FutureMesh)
 	{
+		FutureMesh->SetupAttachment(nullptr);
+
 		SetRootComponent(FutureMesh);
 		
 		if (PastMesh)
