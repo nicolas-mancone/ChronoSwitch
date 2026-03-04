@@ -10,6 +10,9 @@
 // Search Settings Key Defines
 #define SEARCH_PRESENCE FName(TEXT("PRESENCESEARCH"))
 
+// Multicast delegate signatures
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInviteReceivedSignal);
+
 /**
  * 
  */
@@ -29,24 +32,32 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FindJoinSession();
 	
+	UFUNCTION(BlueprintCallable)
+	void OpenExternalInviteDialog();
+	
 	/** The map to travel to when hosting a session. Format: "/Game/Path/To/Map" */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Session")
 	TSoftObjectPtr<UWorld> LobbyMap;
 	
-protected:
+	// Broadcast Signals
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnInviteReceivedSignal OnInviteReceivedSignal;
 	
-	void OpenExternalInviteDialog();
+protected:
 	
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> PersonInviting, const FOnlineSessionSearchResult& InviteResult);
+	void OnInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& AppId, const FOnlineSessionSearchResult& InviteResult);
 	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 	
 private:
+	// Session Interface Handles
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
 	FDelegateHandle FindSessionsCompleteDelegateHandle;
 	FDelegateHandle JoinSessionCompleteDelegateHandle;
 	FDelegateHandle InviteAcceptedDelegateHandle;
+	FDelegateHandle InviteReceivedDelegateHandle;
 };
