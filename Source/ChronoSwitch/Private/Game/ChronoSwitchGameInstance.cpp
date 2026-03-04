@@ -19,9 +19,11 @@ void UChronoSwitchGameInstance::Init()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Found Subsystem: %s"), *OnlineSubsystem->GetSubsystemName().ToString());
 		IOnlineSessionPtr SessionInterface = OnlineSubsystem ? OnlineSubsystem->GetSessionInterface() : nullptr;
-		
 		if (!SessionInterface.IsValid()) return;
+		
+		// Adding passive delegate handles
 		InviteAcceptedDelegateHandle = SessionInterface->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnInviteAccepted));
+		InviteReceivedDelegateHandle = SessionInterface->AddOnSessionInviteReceivedDelegate_Handle(FOnSessionInviteReceivedDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnInviteReceived));
 	}
 	else
 	{
@@ -46,8 +48,7 @@ void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers)
 	SessionSettings.bShouldAdvertise = true;
 	SessionSettings.bUsesPresence = true;
 	SessionSettings.bUseLobbiesIfAvailable = true;
-	// This functionalities should help with using steam functionalities such as Friends Invites
-
+	
 	// Store the handle to clear it later
 	SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
 	CreateSessionCompleteDelegateHandle = SessionInterface->AddOnCreateSessionCompleteDelegate_Handle(FOnCreateSessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnCreateSessionComplete));
@@ -70,6 +71,23 @@ void UChronoSwitchGameInstance::FindJoinSession()
 	FindSessionsCompleteDelegateHandle = SessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FOnFindSessionsCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnFindSessionsComplete));
 	
 	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+}
+
+#pragma endregion
+
+#pragma region ExternalUtilities
+
+void UChronoSwitchGameInstance::OpenExternalInviteDialog()
+{
+	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
+	if (Subsystem)
+	{
+		IOnlineExternalUIPtr ExternalUI = Subsystem->GetExternalUIInterface();
+		if (ExternalUI.IsValid())
+		{
+			ExternalUI->ShowInviteUI(0, NAME_GameSession);
+		}
+	}
 }
 
 #pragma endregion
@@ -154,17 +172,10 @@ void UChronoSwitchGameInstance::OnInviteAccepted(const bool bWasSuccessful, cons
 	}
 }
 
-void UChronoSwitchGameInstance::OpenExternalInviteDialog()
+void UChronoSwitchGameInstance::OnInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId,
+	const FString& AppId, const FOnlineSessionSearchResult& InviteResult)
 {
-	IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld());
-	if (Subsystem)
-	{
-		IOnlineExternalUIPtr ExternalUI = Subsystem->GetExternalUIInterface();
-		if (ExternalUI.IsValid())
-		{
-			ExternalUI->ShowInviteUI(0, NAME_GameSession);
-		}
-	}
+	OnInviteReceivedSignal.Broadcast();
 }
 
 #pragma endregion
