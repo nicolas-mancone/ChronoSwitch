@@ -106,6 +106,8 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 			{
 				PS->SetCanSwitchTimeline(false);
 			}
+			
+			ManageSoundOnCrossing();
 		}
 	}
 	// Player is exiting the C.A.G Zone
@@ -122,6 +124,8 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 			{
 				PS->SetCanSwitchTimeline(true);
 			}
+			
+			ManageSoundOnCrossing();
 		}
 	}
 

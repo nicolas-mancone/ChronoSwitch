@@ -91,8 +91,11 @@ protected:
 	
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, UPrimitiveComponent* OtherComp, int32 BodyIndex);
-	
+
 #pragma endregion
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Sound")
+	void ManageSoundOnCrossing();
 	
 private:
 	
