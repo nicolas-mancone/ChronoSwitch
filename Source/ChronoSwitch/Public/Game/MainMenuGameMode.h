@@ -22,13 +22,10 @@ public:
 	
 	virtual void StartPlay() override;
 	
+	/*
 protected:
-	UPROPERTY()
-	USessionsWidget* SessionsWidget;
-	
-	UPROPERTY()
-	UInviteReceivedWidget* InviteReceivedWidget;
 	
 	UFUNCTION()
 	void OnInviteReceived();
+	*/
 };

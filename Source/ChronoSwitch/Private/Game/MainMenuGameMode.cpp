@@ -16,16 +16,17 @@ AMainMenuGameMode::AMainMenuGameMode()
 void AMainMenuGameMode::StartPlay()
 {
 	Super::StartPlay();
-	
+	/*
 	SessionsWidget = CreateWidget<USessionsWidget>(GetWorld(), USessionsWidget::StaticClass());
 	InviteReceivedWidget = CreateWidget<UInviteReceivedWidget>(GetWorld(), UInviteReceivedWidget::StaticClass());
 	SessionsWidget->AddToViewport();
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("StartPlay"));
+	*/
 	 
-	Cast<UChronoSwitchGameInstance>(GetGameInstance())->OnInviteReceivedSignal.AddDynamic(this, &AMainMenuGameMode::OnInviteReceived);
+	//Cast<UChronoSwitchGameInstance>(GetGameInstance())->OnInviteReceivedSignal.AddDynamic(this, &AMainMenuGameMode::OnInviteReceived);
 }
-
+/*
 void AMainMenuGameMode::OnInviteReceived()
 {
-	InviteReceivedWidget->AddToViewport();
+	//InviteReceivedWidget->AddToViewport();
 }
+*/

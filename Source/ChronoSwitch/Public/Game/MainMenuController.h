@@ -6,6 +6,9 @@
 #include "GameFramework/PlayerController.h"
 #include "MainMenuController.generated.h"
 
+class USessionsWidget;
+class UInviteReceivedWidget;
+
 /**
  * 
  */
@@ -16,4 +19,18 @@ class CHRONOSWITCH_API AMainMenuController : public APlayerController
 	
 public:
 	virtual void BeginPlay() override;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> SessionsWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> InviteReceivedWidgetClass;
+	
+	UPROPERTY()
+	USessionsWidget* SessionsWidget;
+	UPROPERTY()
+	UInviteReceivedWidget* InviteReceivedWidget;
+	
+protected:
+	UFUNCTION()
+	void OnInviteReceived();
 };
