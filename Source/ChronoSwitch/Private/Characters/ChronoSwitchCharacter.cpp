@@ -31,10 +31,6 @@ AChronoSwitchCharacter::AChronoSwitchCharacter()
 	CameraSpringArm->SetupAttachment(GetMesh(), FName("Eyes_Socket"));
 	CameraSpringArm->TargetArmLength = 0.0f;
 	CameraSpringArm->bUsePawnControlRotation = true;
-	CameraSpringArm->bEnableCameraLag = true;
-	CameraSpringArm->CameraLagSpeed = 15.0f;
-	CameraSpringArm->bEnableCameraRotationLag = true;
-	CameraSpringArm->CameraRotationLagSpeed = 20.0f;
 	
 	// Create and configure the first-person camera.
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
