@@ -7,6 +7,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "ChronoSwitchCharacter.generated.h"
 
+class USpringArmComponent;
 class UTimelineComponent;
 class UCameraComponent;
 class UInputMappingContext;
@@ -56,8 +57,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
-	USkeletalMeshComponent* FirstPersonMeshComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraSpringArm;
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	// USkeletalMeshComponent* FirstPersonMeshComponent;
 #pragma endregion
 
 #pragma region UI

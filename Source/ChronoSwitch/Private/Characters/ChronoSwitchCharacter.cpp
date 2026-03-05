@@ -11,6 +11,7 @@
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Interfaces/Interactable.h"
 #include "Net/UnrealNetwork.h"
 #include "Gameplay/TimelineActors/TimelineBaseActor.h"
@@ -26,26 +27,35 @@ AChronoSwitchCharacter::AChronoSwitchCharacter()
 	// Update before physics to ensure passengers can react to the moving base in the same frame.
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	
+	CameraSpringArm = CreateDefaultSubobject<USpringArmComponent>("CameraSpringArm");
+	CameraSpringArm->SetupAttachment(GetMesh(), FName("Eyes_Socket"));
+	CameraSpringArm->TargetArmLength = 0.0f;
+	CameraSpringArm->bUsePawnControlRotation = true;
+	CameraSpringArm->bEnableCameraLag = true;
+	CameraSpringArm->CameraLagSpeed = 15.0f;
+	CameraSpringArm->bEnableCameraRotationLag = true;
+	CameraSpringArm->CameraRotationLagSpeed = 20.0f;
+	
 	// Create and configure the first-person camera.
 	FirstPersonCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	FirstPersonCameraComponent->SetupAttachment(GetCapsuleComponent());
+	FirstPersonCameraComponent->SetupAttachment(CameraSpringArm, USpringArmComponent::SocketName);
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 64.0f));
-	FirstPersonCameraComponent->bUsePawnControlRotation = true;
+	FirstPersonCameraComponent->bUsePawnControlRotation = false;
 	
 	// Create the first-person mesh (arms), attached to the camera.
 	// This mesh is only visible to the owning player.
-	FirstPersonMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-	FirstPersonMeshComponent->SetupAttachment(FirstPersonCameraComponent);
-	FirstPersonMeshComponent->SetOnlyOwnerSee(true);
-	FirstPersonMeshComponent->bCastDynamicShadow = false;
-	FirstPersonMeshComponent->CastShadow = false;
+	// FirstPersonMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+	// FirstPersonMeshComponent->SetupAttachment(FirstPersonCameraComponent);
+	// FirstPersonMeshComponent->SetOnlyOwnerSee(true);
+	// FirstPersonMeshComponent->bCastDynamicShadow = false;
+	// FirstPersonMeshComponent->CastShadow = false;
 	
 	// Sets default private variables
 	GrabbedComponent = nullptr;
 	GrabbedRelativeRotation = FRotator::ZeroRotator;
 	
 	// The third-person body mesh should not be visible to the owning player.
-	GetMesh()->SetOwnerNoSee(true);
+	//GetMesh()->SetOwnerNoSee(true);
 
 	// Initialize state trackers
 	HeldObjectPos = FVector::ZeroVector;
@@ -556,7 +566,10 @@ void AChronoSwitchCharacter::OnTickSenseInteractable()
 	
 	// Checks if the SensedActor changed
 	SensedActor = NewSensedActor;
-	UpdateInteractWidget();
+	if (InteractWidget)
+	{
+		UpdateInteractWidget();
+	}
 }
 
 AActor* AChronoSwitchCharacter::ValidateInteractable(AActor* HitActor, UPrimitiveComponent* HitComponent)
@@ -576,7 +589,7 @@ AActor* AChronoSwitchCharacter::ValidateInteractable(AActor* HitActor, UPrimitiv
 
 void AChronoSwitchCharacter::UpdateInteractWidget()
 {
-	if (!SensedActor)
+	if (!SensedActor && InteractWidget)
 	{
 		InteractWidget->SetVisibility(ESlateVisibility::Collapsed);
 		return;
