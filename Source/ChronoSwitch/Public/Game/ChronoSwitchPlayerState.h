@@ -40,7 +40,7 @@ public:
 
 	/** Initiates a timeline change request. Includes client-side prediction for immediate feedback. */
 	UFUNCTION(BlueprintCallable, Category = "Timeline")
-	void RequestTimelineChange(uint8 NewID);
+	void RequestTimelineChange(uint8 NewID, bool bForceChange = false);
 
 	/** Initiates a visor state change request. Includes client-side prediction for immediate feedback. */
 	UFUNCTION(BlueprintCallable, Category = "Timeline")

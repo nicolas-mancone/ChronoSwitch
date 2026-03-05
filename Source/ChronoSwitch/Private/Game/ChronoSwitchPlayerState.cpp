@@ -23,9 +23,11 @@ void AChronoSwitchPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME(AChronoSwitchPlayerState, bCanSwitchTimeline);
 }
 
-void AChronoSwitchPlayerState::RequestTimelineChange(uint8 NewID)
+void AChronoSwitchPlayerState::RequestTimelineChange(uint8 NewID, bool bForceChange)
 {
-	if (!bCanSwitchTimeline) return;
+	if (!bForceChange)
+		if (!bCanSwitchTimeline)
+			return;
 	
 	if (TimelineID == NewID) return;
 

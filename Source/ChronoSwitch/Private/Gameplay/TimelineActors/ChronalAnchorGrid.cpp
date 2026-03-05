@@ -35,9 +35,6 @@ AChronalAnchorGrid::AChronalAnchorGrid()
 	BoxCollider->SetGenerateOverlapEvents(true);
 	BoxCollider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
 	BoxCollider->SetCollisionResponseToAllChannels(ECR_Overlap);
-	
-	bShouldDisableVisor = true;
-	bShouldDisableSwitch = true;
 }
 
 // Called when the game starts or when spawned
@@ -96,15 +93,17 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 		if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Entered"));
-			PS->RequestTimelineChange(static_cast<uint8>(TargetForcedTimeline));
-			
-			if (bShouldDisableVisor)
+			if (EnteringCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
 			{
-				PS->RequestVisorStateChange(false);
+				PS->RequestTimelineChange(static_cast<uint8>(EnteringCrossingSettings.TargetForcedTimeline), true);
 			}
-			if (bShouldDisableSwitch)
+			if (EnteringCrossingSettings.VisorMode != ECrossingEffectMode::None)
 			{
-				PS->SetCanSwitchTimeline(false);
+				PS->RequestVisorStateChange(static_cast<bool>(EnteringCrossingSettings.VisorMode));
+			}
+			if (EnteringCrossingSettings.SwitchMode != ECrossingEffectMode::None)
+			{
+				PS->SetCanSwitchTimeline(static_cast<bool>(EnteringCrossingSettings.SwitchMode));
 			}
 			
 			ManageSoundOnCrossing();
@@ -116,13 +115,17 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Exited"));
 		if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 		{
-			if (bShouldDisableVisor)
+			if (ExitingCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
 			{
-				PS->RequestVisorStateChange(true);
+				PS->RequestTimelineChange(static_cast<uint8>(ExitingCrossingSettings.TargetForcedTimeline), true);
 			}
-			if (bShouldDisableSwitch)
+			if (ExitingCrossingSettings.VisorMode != ECrossingEffectMode::None)
 			{
-				PS->SetCanSwitchTimeline(true);
+				PS->RequestVisorStateChange(static_cast<bool>(ExitingCrossingSettings.VisorMode));
+			}
+			if (ExitingCrossingSettings.SwitchMode != ECrossingEffectMode::None)
+			{
+				PS->SetCanSwitchTimeline(static_cast<bool>(ExitingCrossingSettings.SwitchMode));
 			}
 			
 			ManageSoundOnCrossing();

@@ -16,7 +16,36 @@ UENUM(BlueprintType)
 enum class EForcedTimeline : uint8
 {
 	Past UMETA(DisplayName="Past"),
-	Future UMETA(DisplayName="Future")
+	Future UMETA(DisplayName="Future"),
+	None UMETA(DisplayName="None")
+	// "None" must be last for casting purposes
+};
+
+UENUM(BlueprintType)
+enum class ECrossingEffectMode : uint8
+{
+	Disable UMETA(DisplayName="Disable"),
+	Enable UMETA(DisplayName="Enable"),
+	None UMETA(DisplayName="None")
+	// "None" must be last for casting purposes
+};
+
+USTRUCT(BlueprintType)
+struct FCrossingSettings
+{
+	GENERATED_BODY()
+	
+	// Target Timeline of the C.A.G. Zone
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
+	EForcedTimeline TargetForcedTimeline = EForcedTimeline::Past;
+	
+	// Dictates whether it should disable visor or not
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
+	ECrossingEffectMode VisorMode = ECrossingEffectMode::None;
+	
+	// Dictates whether it should disable visor or not
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
+	ECrossingEffectMode SwitchMode = ECrossingEffectMode::None;
 };
 /**
  * Class for Chronal Anchor Grid portals that lock the player in a specific
@@ -39,16 +68,14 @@ public:
 #pragma endregion
 	
 #pragma region Settings
-	// Target Timeline of the C.A.G. Zone
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
-	EForcedTimeline TargetForcedTimeline;
 	
-	// Dictates whether it should disable visor or not
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
-	bool bShouldDisableVisor;
+	// The struct stores setting for entering the barrier
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FCrossingSettings EnteringCrossingSettings;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "CAG Settings")
-	bool bShouldDisableSwitch;
+	// The struct stores setting for exiting the barrier
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	FCrossingSettings ExitingCrossingSettings;
 	
 	// The map stores the sign of the entry direction for each player
 	UPROPERTY()
