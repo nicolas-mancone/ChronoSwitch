@@ -5,8 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Net/UnrealNetwork.h"
-
 #include "ProximityDoor.generated.h"
+
+class USceneComponent;
+class UStaticMeshComponent;
+class UBoxComponent;
 
 UCLASS()
 class CHRONOSWITCH_API AProximityDoor : public AActor
@@ -26,7 +29,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-/*
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USceneComponent> DoorPivotScene;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
@@ -37,14 +40,18 @@ protected:
 	TObjectPtr<UBoxComponent> BoxColliderOpen;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxColliderClose;
-*/	
-	//UPROPERTY(ReplicatedUsing=OnRep_OutPlayerCount)
+
+	UPROPERTY(ReplicatedUsing=OnRep_OutPlayerCount)
 	uint8 OutPlayerCount = 0;
-	//UPROPERTY(ReplicatedUsing=OnRep_InPlayerCount)
+	UPROPERTY(ReplicatedUsing=OnRep_InPlayerCount)
 	uint8 InPlayerCount = 0;
-	//UPROPERTY(Replicated)
+	UPROPERTY(Replicated)
 	bool bIsDoorLocked = false;
 	
-	//UFUNCTION()
-	//virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	UFUNCTION()
+	void OnRep_OutPlayerCount();
+	UFUNCTION()
+	void OnRep_InPlayerCount();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

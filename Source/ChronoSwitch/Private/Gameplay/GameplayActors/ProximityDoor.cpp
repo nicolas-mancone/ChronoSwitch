@@ -5,7 +5,6 @@
 
 
 
-
 // Sets default values
 AProximityDoor::AProximityDoor()
 {
@@ -24,7 +23,15 @@ void AProximityDoor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-/*
+
+void AProximityDoor::OnRep_OutPlayerCount()
+{
+}
+
+void AProximityDoor::OnRep_InPlayerCount()
+{
+}
+
 void AProximityDoor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -34,4 +41,3 @@ void AProximityDoor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AProximityDoor, InPlayerCount);
 	DOREPLIFETIME(AProximityDoor, bIsDoorLocked);
 }
-*/
