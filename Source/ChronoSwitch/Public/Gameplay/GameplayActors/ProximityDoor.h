@@ -10,6 +10,7 @@
 class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
+class AChronoSwitchCharacter;
 
 UCLASS()
 class CHRONOSWITCH_API AProximityDoor : public AActor
@@ -23,8 +24,12 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Door")
 	float OpeningOffset = 100;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Door")
+	float OpeningSpeed = 1;
+	UPROPERTY(EditAnywhere, Category="Door")
+	int8 RequiredPlayers = 2;
 
 protected:
 	// Called when the game starts or when spawned
@@ -39,14 +44,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxColliderOpen;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UBoxComponent> BoxColliderClose;
+	TObjectPtr<UBoxComponent> BoxColliderClose1;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	//TObjectPtr<UBoxComponent> BoxColliderClose2;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	//TObjectPtr<UBoxComponent> BoxColliderClose3;
 
 	UPROPERTY(ReplicatedUsing=OnRep_OutPlayerCount)
 	uint8 OutPlayerCount = 0;
 	UPROPERTY(ReplicatedUsing=OnRep_InPlayerCount)
 	uint8 InPlayerCount = 0;
-	UPROPERTY(Replicated)
-	bool bIsDoorLocked = false;
+	UPROPERTY()
+	TArray<AChronoSwitchCharacter*> PassedPlayers;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OpenDoor();
+	UFUNCTION(BlueprintImplementableEvent)
+	void CloseDoor();
+	
+	UFUNCTION()
+	void OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnOpenEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	UFUNCTION()
+	void OnCloseBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION()
+	void OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
 	UFUNCTION()
 	void OnRep_OutPlayerCount();
