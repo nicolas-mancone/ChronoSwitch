@@ -77,9 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
 	FCrossingSettings ExitingCrossingSettings;
 	
-	// The map stores the sign of the entry direction for each player
+	// The map stores the surface normal at the entry point for each player
 	UPROPERTY()
-	TMap<AChronoSwitchCharacter*, float> StoredDirectionSigns;
+	TMap<AChronoSwitchCharacter*, FVector> StoredEntryNormals;
 	
 #pragma endregion
 	
@@ -106,10 +106,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	UArrowComponent* EntranceDirectionArrow;
 	
-	/** Collider box that triggers the effect of the barrier */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UBoxComponent> BoxCollider;
-	
 #pragma endregion
 	
 #pragma region Collision Delegates
@@ -127,9 +123,9 @@ protected:
 private:
 	
 #pragma region Utility
-	/** Calculates from which side of the barrier the player is triggering the event */
+	/** Calculates the surface normal of the barrier closest to the actor */
 	UFUNCTION()
-	float GetDirectionSign(const AActor* Actor) const;
+	FVector GetInteractionNormal(const AActor* Actor) const;
 	
 #pragma endregion
 };

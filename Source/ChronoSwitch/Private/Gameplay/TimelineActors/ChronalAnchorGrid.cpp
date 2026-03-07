@@ -3,9 +3,9 @@
 
 #include "Gameplay/TimelineActors/ChronalAnchorGrid.h"
 #include "Characters/ChronoSwitchCharacter.h"
-#include "Components/BoxComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Game/ChronoSwitchPlayerState.h"
 
 
@@ -26,15 +26,10 @@ AChronalAnchorGrid::AChronalAnchorGrid()
 	GridBorder2->SetupAttachment(SceneRoot);
 	BarrierMesh->SetupAttachment(SceneRoot);
 	EntranceDirectionArrow->SetupAttachment(SceneRoot);
-	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");
-	BoxCollider->SetupAttachment(SceneRoot);
 	
-	// Collision Setups
-	BarrierMesh->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
-	
-	BoxCollider->SetGenerateOverlapEvents(true);
-	BoxCollider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
-	BoxCollider->SetCollisionResponseToAllChannels(ECR_Overlap);
+	BarrierMesh->SetGenerateOverlapEvents(true);
+	BarrierMesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+	BarrierMesh->SetCollisionResponseToAllChannels(ECR_Overlap);
 }
 
 // Called when the game starts or when spawned
@@ -44,10 +39,10 @@ void AChronalAnchorGrid::BeginPlay()
 	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Forward Vector:\nx: %.2f, y: %.2f, z: %.2f"), GetActorForwardVector().X, GetActorForwardVector().Y, GetActorForwardVector().Z));
 	
-	if (BoxCollider)
+	if (BarrierMesh)
 	{
-		BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &AChronalAnchorGrid::OnBeginOverlap);
-		BoxCollider->OnComponentEndOverlap.AddDynamic(this, &AChronalAnchorGrid::OnEndOverlap);
+		BarrierMesh->OnComponentBeginOverlap.AddDynamic(this, &AChronalAnchorGrid::OnBeginOverlap);
+		BarrierMesh->OnComponentEndOverlap.AddDynamic(this, &AChronalAnchorGrid::OnEndOverlap);
 	}
 }
 
@@ -62,8 +57,8 @@ void AChronalAnchorGrid::OnBeginOverlap(UPrimitiveComponent* Comp, AActor* Other
 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnBeginOverlap"));
 
-	float Sign = GetDirectionSign(Player);
-	StoredDirectionSigns.Add(Player, Sign);
+	FVector EntryNormal = GetInteractionNormal(Player);
+	StoredEntryNormals.Add(Player, EntryNormal);
 }
 
 void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, UPrimitiveComponent* OtherComp, int32 BodyIndex)
@@ -78,67 +73,78 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnEndOverlap"));
 
 	// The map returns a pointer to the value
-	float* OldSignPtr = StoredDirectionSigns.Find(Player);
-	if (!OldSignPtr)
+	FVector* EntryNormalPtr = StoredEntryNormals.Find(Player);
+	if (!EntryNormalPtr)
 		return;
 
-	float OldSign = *OldSignPtr;
-	float NewSign = GetDirectionSign(Player);
+	FVector EntryNormal = *EntryNormalPtr;
+	FVector ExitNormal = GetInteractionNormal(Player);
 	
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, FString::Printf(TEXT("Crossing: %.2f -> %.2f"), OldSign, NewSign));
-	
-	// Player is entering the C.A.G Zone 
-	if (OldSign < 0 && NewSign > 0)
+	// Check if we crossed THROUGH the mesh
+	// Dot product of opposite vectors is -1. We check if it's negative enough.
+	if (FVector::DotProduct(EntryNormal, ExitNormal) < -0.1f)
 	{
-		if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
+		// Determine direction relative to the Arrow
+		float DirectionDot = FVector::DotProduct(EntryNormal, EntranceDirectionArrow->GetForwardVector());
+		
+		// Player is entering the C.A.G Zone (Moving in direction of Arrow)
+		if (DirectionDot < 0.0f)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Entered"));
-			if (EnteringCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
+			if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 			{
-				PS->RequestTimelineChange(static_cast<uint8>(EnteringCrossingSettings.TargetForcedTimeline), true);
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Entered"));
+				if (EnteringCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
+				{
+					PS->RequestTimelineChange(static_cast<uint8>(EnteringCrossingSettings.TargetForcedTimeline), true);
+				}
+				if (EnteringCrossingSettings.VisorMode != ECrossingEffectMode::None)
+				{
+					PS->RequestVisorStateChange(static_cast<bool>(EnteringCrossingSettings.VisorMode));
+				}
+				if (EnteringCrossingSettings.SwitchMode != ECrossingEffectMode::None)
+				{
+					PS->SetCanSwitchTimeline(static_cast<bool>(EnteringCrossingSettings.SwitchMode));
+				}
+				
+				ManageSoundOnCrossing();
 			}
-			if (EnteringCrossingSettings.VisorMode != ECrossingEffectMode::None)
-			{
-				PS->RequestVisorStateChange(static_cast<bool>(EnteringCrossingSettings.VisorMode));
-			}
-			if (EnteringCrossingSettings.SwitchMode != ECrossingEffectMode::None)
-			{
-				PS->SetCanSwitchTimeline(static_cast<bool>(EnteringCrossingSettings.SwitchMode));
-			}
-			
-			ManageSoundOnCrossing();
 		}
-	}
-	// Player is exiting the C.A.G Zone
-	else if (OldSign > 0 && NewSign < 0)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Exited"));
-		if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
+		// Player is exiting the C.A.G Zone (Moving against direction of Arrow)
+		else
 		{
-			if (ExitingCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Exited"));
+			if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 			{
-				PS->RequestTimelineChange(static_cast<uint8>(ExitingCrossingSettings.TargetForcedTimeline), true);
+				if (ExitingCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
+				{
+					PS->RequestTimelineChange(static_cast<uint8>(ExitingCrossingSettings.TargetForcedTimeline), true);
+				}
+				if (ExitingCrossingSettings.VisorMode != ECrossingEffectMode::None)
+				{
+					PS->RequestVisorStateChange(static_cast<bool>(ExitingCrossingSettings.VisorMode));
+				}
+				if (ExitingCrossingSettings.SwitchMode != ECrossingEffectMode::None)
+				{
+					PS->SetCanSwitchTimeline(static_cast<bool>(ExitingCrossingSettings.SwitchMode));
+				}
+				
+				ManageSoundOnCrossing();
 			}
-			if (ExitingCrossingSettings.VisorMode != ECrossingEffectMode::None)
-			{
-				PS->RequestVisorStateChange(static_cast<bool>(ExitingCrossingSettings.VisorMode));
-			}
-			if (ExitingCrossingSettings.SwitchMode != ECrossingEffectMode::None)
-			{
-				PS->SetCanSwitchTimeline(static_cast<bool>(ExitingCrossingSettings.SwitchMode));
-			}
-			
-			ManageSoundOnCrossing();
 		}
 	}
 
-	StoredDirectionSigns.Remove(Player);
+	StoredEntryNormals.Remove(Player);
 }
 
-float AChronalAnchorGrid::GetDirectionSign(const AActor* Actor) const
+FVector AChronalAnchorGrid::GetInteractionNormal(const AActor* Actor) const
 {
-	FVector Distance = Actor->GetActorLocation() - GetActorLocation();
-	return FVector::DotProduct(GetActorForwardVector(), Distance);
+	if (!BarrierMesh || !Actor) return FVector::ZeroVector;
+
+	FVector ClosestPoint;
+	// Finds the point on the mesh surface closest to the actor
+	BarrierMesh->GetClosestPointOnCollision(Actor->GetActorLocation(), ClosestPoint);
+	
+	return (Actor->GetActorLocation() - ClosestPoint).GetSafeNormal();
 }
 
 // Called every frame

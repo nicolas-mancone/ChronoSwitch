@@ -641,7 +641,7 @@ void AChronoSwitchCharacter::ExecuteTimeSwitchLogic()
 	AChronoSwitchPlayerState* MyPS = GetPlayerState<AChronoSwitchPlayerState>();
 	AChronoSwitchGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AChronoSwitchGameState>() : nullptr;
 
-	if (!MyPS || !GameState)
+	if (!MyPS || !GameState || !MyPS->CanSwitchTimeline())
 	{
 		return;
 	}

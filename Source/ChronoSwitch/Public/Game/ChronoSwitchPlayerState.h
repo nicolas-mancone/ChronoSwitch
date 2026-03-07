@@ -35,6 +35,9 @@ public:
 	/** Returns true if the timeline-viewing visor is currently active. */
 	UFUNCTION(BlueprintCallable, Category = "Timeline")
 	FORCEINLINE bool IsVisorActive() const { return bVisorActive; }
+	
+	UFUNCTION(BlueprintCallable, Category = "Timeline")
+	FORCEINLINE bool CanSwitchTimeline() const { return bCanSwitchTimeline; }
 
 	// --- State Change Requests (Client Side Prediction) ---
 
