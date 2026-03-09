@@ -28,7 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	UPROPERTY()
-	bool bIsPressed = false;
+	uint8 PlayersOnPlate = 0;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> StaticMesh;

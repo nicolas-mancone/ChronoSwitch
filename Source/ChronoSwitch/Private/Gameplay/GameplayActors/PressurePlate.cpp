@@ -15,10 +15,13 @@ APressurePlate::APressurePlate()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	
+	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	SetRootComponent(SceneRoot);
+	
 	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>("StaticMesh");
 	BoxCollider = CreateDefaultSubobject<UBoxComponent>("BoxCollider");
-	StaticMesh->SetupAttachment(GetRootComponent());
-	BoxCollider->SetupAttachment(GetRootComponent());
+	StaticMesh->SetupAttachment(SceneRoot);
+	BoxCollider->SetupAttachment(SceneRoot);
 	BoxCollider->SetCollisionObjectType(ECC_WorldDynamic);
 	BoxCollider->SetCollisionResponseToAllChannels(ECR_Overlap);
 }
@@ -28,18 +31,28 @@ void APressurePlate::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &APressurePlate::OnBeginOverlap);
-	BoxCollider->OnComponentEndOverlap.AddDynamic(this, &APressurePlate::OnEndOverlap);
+	if (BoxCollider)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Collision Setup"));
+		BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &APressurePlate::OnBeginOverlap);
+		BoxCollider->OnComponentEndOverlap.AddDynamic(this, &APressurePlate::OnEndOverlap);
+	}
 }
 
 void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	PlayersOnPlate++;
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
+	if (PlayersOnPlate == 1)
 	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+		if (Cast<AChronoSwitchCharacter>(OtherActor))
 		{
-			GS->SetGlobalTimeline(TimelineToSet);
+			if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+			{
+				GS->SetGlobalTimeline(TimelineToSet);
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
+			}
 		}
 	}
 }
@@ -47,11 +60,15 @@ void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 void APressurePlate::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	PlayersOnPlate--;
+	if (PlayersOnPlate == 0)
 	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+		if (Cast<AChronoSwitchCharacter>(OtherActor))
 		{
-			GS->SetGlobalTimeline(TimelineToSet == 0 ? 1 : 0 );
+			if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+			{
+				GS->SetGlobalTimeline(TimelineToSet == 0 ? 1 : 0 );
+			}
 		}
 	}
 }

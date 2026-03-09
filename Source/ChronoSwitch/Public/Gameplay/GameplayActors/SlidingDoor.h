@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "SlidingDoor.generated.h"
 
+class UStaticMeshComponent;
+
 UCLASS()
 class CHRONOSWITCH_API ASlidingDoor : public AActor
 {
@@ -15,11 +17,25 @@ public:
 	// Sets default values for this actor's properties
 	ASlidingDoor();
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
+	float SlideSpeed = 1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
+	float SlideOffset = 100;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OpenDoor();
+	UFUNCTION(BlueprintImplementableEvent)
+	void CloseDoor();
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
+	UStaticMeshComponent* DoorMesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
+	UStaticMeshComponent* DoorFrameMesh;
 };

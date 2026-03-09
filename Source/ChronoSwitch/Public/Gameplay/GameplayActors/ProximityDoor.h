@@ -45,17 +45,11 @@ protected:
 	TObjectPtr<UBoxComponent> BoxColliderOpen;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxColliderClose1;
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
-	//TObjectPtr<UBoxComponent> BoxColliderClose2;
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
-	//TObjectPtr<UBoxComponent> BoxColliderClose3;
 
 	UPROPERTY(ReplicatedUsing=OnRep_OutPlayerCount)
 	uint8 OutPlayerCount = 0;
 	UPROPERTY(ReplicatedUsing=OnRep_InPlayerCount)
 	uint8 InPlayerCount = 0;
-	UPROPERTY()
-	TArray<AChronoSwitchCharacter*> PassedPlayers;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OpenDoor();

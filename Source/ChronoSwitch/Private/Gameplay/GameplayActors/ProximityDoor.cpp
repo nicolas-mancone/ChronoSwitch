@@ -22,8 +22,6 @@ AProximityDoor::AProximityDoor()
 	DoorMesh2 = CreateDefaultSubobject<UStaticMeshComponent>("DoorMesh2");
 	BoxColliderOpen = CreateDefaultSubobject<UBoxComponent>("BoxColliderOpen");
 	BoxColliderClose1 = CreateDefaultSubobject<UBoxComponent>("BoxColliderClose1");
-	//BoxColliderClose2 = CreateDefaultSubobject<UBoxComponent>("BoxColliderClose2");
-	//BoxColliderClose3 = CreateDefaultSubobject<UBoxComponent>("BoxColliderClose3");
 	DoorPivotScene->SetupAttachment(SceneRoot);
 	DoorMesh1->SetupAttachment(DoorPivotScene);
 	DoorMesh2->SetupAttachment(DoorPivotScene);
@@ -33,8 +31,6 @@ AProximityDoor::AProximityDoor()
 	BoxColliderOpen->SetCollisionResponseToAllChannels(ECR_Overlap);
 	BoxColliderClose1->SetCollisionObjectType(ECC_WorldDynamic);
 	BoxColliderClose1->SetCollisionResponseToAllChannels(ECR_Overlap);
-	//BoxColliderClose2->SetupAttachment(SceneRoot);
-	//BoxColliderClose3->SetupAttachment(SceneRoot);
 	
 	SetReplicates(true);
 }
@@ -51,10 +47,6 @@ void AProximityDoor::BeginPlay()
 		
 		BoxColliderClose1->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnCloseBeginOverlap);
 		BoxColliderClose1->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnCloseEndOverlap);
-		//BoxColliderClose2->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnCloseBeginOverlap);
-		//BoxColliderClose2->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnCloseEndOverlap);
-		//BoxColliderClose3->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnCloseBeginOverlap);
-		//BoxColliderClose3->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnCloseEndOverlap);
 	}
 }
 
@@ -92,11 +84,9 @@ void AProximityDoor::OnCloseBeginOverlap(UPrimitiveComponent* OverlappedComponen
 {
 	if (Cast<AChronoSwitchCharacter>(OtherActor))
 	{
-		OutPlayerCount++;
-		if (OutPlayerCount >= RequiredPlayers)
+		if (!BoxColliderOpen->IsOverlappingActor(OtherActor))
 		{
-			OutPlayerCount = RequiredPlayers;
-			CloseDoor();
+			OutPlayerCount--;
 		}
 	}
 }
@@ -106,8 +96,15 @@ void AProximityDoor::OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent,
 {
 	if (Cast<AChronoSwitchCharacter>(OtherActor))
 	{
-		if (BoxColliderOpen->IsOverlappingActor(OtherActor))
-			OutPlayerCount--;
+		if (!BoxColliderOpen->IsOverlappingActor(OtherActor))
+		{
+			OutPlayerCount++;
+			if (OutPlayerCount >= RequiredPlayers)
+			{
+				OutPlayerCount = RequiredPlayers;
+				CloseDoor();
+			}
+		}
 	}
 }
 
