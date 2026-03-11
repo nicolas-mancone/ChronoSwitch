@@ -42,17 +42,16 @@ void APressurePlate::BeginPlay()
 void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	PlayersOnPlate++;
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
-	if (PlayersOnPlate == 1)
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 	{
-		if (Cast<AChronoSwitchCharacter>(OtherActor))
+		GS->SharedPlayersOnPlate++;
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
+		if (GS->SharedPlayersOnPlate == 1)
 		{
-			if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-			{
-				GS->SetGlobalTimeline(TimelineToSet);
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
-			}
+			GS->SetGlobalTimeline(TimelineToSet);
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
 		}
 	}
 }
@@ -60,15 +59,14 @@ void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 void APressurePlate::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	PlayersOnPlate--;
-	if (PlayersOnPlate == 0)
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 	{
-		if (Cast<AChronoSwitchCharacter>(OtherActor))
+		GS->SharedPlayersOnPlate--;
+		if (GS->SharedPlayersOnPlate == 0)
 		{
-			if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-			{
-				GS->SetGlobalTimeline(TimelineToSet == 0 ? 1 : 0 );
-			}
+			GS->SetGlobalTimeline(TimelineToSet == 0 ? 1 : 0 );
 		}
 	}
 }

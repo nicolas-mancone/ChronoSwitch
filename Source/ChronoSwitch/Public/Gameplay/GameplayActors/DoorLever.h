@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Interfaces/Interactable.h"
+#include "Net/UnrealNetwork.h"
 #include "DoorLever.generated.h"
 
 class UStaticMeshComponent;
+class USceneComponent;
 class ASlidingDoor;
 
 UCLASS()
@@ -32,11 +34,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	UPROPERTY()
+	UPROPERTY(ReplicatedUsing=OnRep_bIsPulled)
 	bool bIsPulled = false;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
 	UStaticMeshComponent* BaseMesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
+	USceneComponent* LeverPivot;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
 	UStaticMeshComponent* LeverMesh;
 	
@@ -44,4 +48,9 @@ protected:
 	void PullLeverUp();
 	UFUNCTION(BlueprintImplementableEvent)
 	void PullLeverDown();
+	
+	UFUNCTION()
+	void OnRep_bIsPulled();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };

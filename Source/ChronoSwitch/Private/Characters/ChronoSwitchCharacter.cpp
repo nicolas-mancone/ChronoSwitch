@@ -235,7 +235,7 @@ void AChronoSwitchCharacter::Interact()
 	
 	if (SensedActor)
 	{
-		IInteractable::Execute_Interact(SensedActor, this);
+		Server_Interact(SensedActor, this);
 	}
 	
 	// Priority 3: Attempt to grab a physics object.
@@ -372,6 +372,11 @@ void AChronoSwitchCharacter::Server_Release_Implementation()
 
 	// Clear the replicated property.
 	GrabbedComponent = nullptr; 
+}
+
+void AChronoSwitchCharacter::Server_Interact_Implementation(UObject* Object, ACharacter* Interactor)
+{
+	IInteractable::Execute_Interact(Object, Interactor);
 }
 
 void AChronoSwitchCharacter::OnRep_GrabbedComponent(UPrimitiveComponent* OldComponent)

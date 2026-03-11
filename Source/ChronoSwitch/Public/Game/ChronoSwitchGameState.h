@@ -65,6 +65,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Game Rules")
 	bool AreBothPlayersInTimeline(uint8 TimelineID) const;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
+	uint8 SharedPlayersOnPlate = 0;
+	
 protected:
 	virtual void BeginPlay() override;
 
