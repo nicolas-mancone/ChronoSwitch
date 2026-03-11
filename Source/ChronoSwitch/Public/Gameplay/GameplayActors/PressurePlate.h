@@ -27,9 +27,6 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	UPROPERTY()
-	uint8 PlayersOnPlate = 0;
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> StaticMesh;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")

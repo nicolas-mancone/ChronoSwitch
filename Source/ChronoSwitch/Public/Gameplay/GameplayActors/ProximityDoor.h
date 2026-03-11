@@ -29,7 +29,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Door")
 	float OpeningSpeed = 1;
 	UPROPERTY(EditAnywhere, Category="Door")
-	int8 RequiredPlayers = 2;
+	uint8 RequiredPlayers = 2;
 
 protected:
 	// Called when the game starts or when spawned
