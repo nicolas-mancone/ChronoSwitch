@@ -7,6 +7,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
+#include "Game/ChronoSwitchGameState.h"
 
 // Sets default values
 AProximityDoor::AProximityDoor()
@@ -59,12 +60,14 @@ void AProximityDoor::Tick(float DeltaTime)
 void AProximityDoor::OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 	{
-		InPlayerCount++;
-		if (InPlayerCount >= RequiredPlayers)
+		GS->SharedPlayersAtDoor++;
+		if (GS->SharedPlayersAtDoor >= RequiredPlayers)
 		{
-			InPlayerCount = RequiredPlayers;
+			GS->SharedPlayersAtDoor = RequiredPlayers;
 			OpenDoor();
 		}
 	}
@@ -73,9 +76,11 @@ void AProximityDoor::OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent
 void AProximityDoor::OnOpenEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 	{
-		InPlayerCount--;
+		GS->SharedPlayersAtDoor--;
 	}
 }
 
@@ -99,9 +104,9 @@ void AProximityDoor::OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent,
 		if (!BoxColliderOpen->IsOverlappingActor(OtherActor))
 		{
 			OutPlayerCount++;
-			if (OutPlayerCount >= RequiredPlayers)
+			if (OutPlayerCount >= RequiredPlayersOnExit)
 			{
-				OutPlayerCount = RequiredPlayers;
+				OutPlayerCount = RequiredPlayersOnExit;
 				CloseDoor();
 			}
 		}
@@ -116,7 +121,7 @@ void AProximityDoor::OnRep_InPlayerCount()
 
 void AProximityDoor::OnRep_OutPlayerCount()
 {
-	if (OutPlayerCount >= RequiredPlayers)
+	if (OutPlayerCount >= RequiredPlayersOnExit)
 		CloseDoor();
 }
 

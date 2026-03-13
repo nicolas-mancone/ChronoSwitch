@@ -30,6 +30,8 @@ public:
 	float OpeningSpeed = 1;
 	UPROPERTY(EditAnywhere, Category="Door")
 	uint8 RequiredPlayers = 2;
+	UPROPERTY(EditAnywhere, Category="Door")
+	uint8 RequiredPlayersOnExit = 2;
 
 protected:
 	// Called when the game starts or when spawned
