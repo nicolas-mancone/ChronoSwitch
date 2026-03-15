@@ -50,9 +50,5 @@ void ACrossSwitchButton::Interact_Implementation(ACharacter* Interactor)
 
 FText ACrossSwitchButton::GetInteractPrompt_Implementation()
 {
-	if (!HasAuthority())
-	{
-		return FText::FromString("(TEST) HAS NOT AUTHORITY CALLED");
-	}
 	return FText::FromString("Press F to activate");
 }

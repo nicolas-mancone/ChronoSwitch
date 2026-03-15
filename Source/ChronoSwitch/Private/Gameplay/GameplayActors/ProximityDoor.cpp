@@ -62,12 +62,24 @@ void AProximityDoor::OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent
 {
 	if (!Cast<AChronoSwitchCharacter>(OtherActor))
 		return;
-	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+	if (bUseGlobalSharedCounter)
 	{
-		GS->SharedPlayersAtDoor++;
-		if (GS->SharedPlayersAtDoor >= RequiredPlayers)
+		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 		{
-			GS->SharedPlayersAtDoor = RequiredPlayers;
+			GS->SharedPlayersAtDoor++;
+			if (GS->SharedPlayersAtDoor >= RequiredPlayers)
+			{
+				GS->SharedPlayersAtDoor = RequiredPlayers;
+				OpenDoor();
+			}
+		}
+	}
+	else
+	{
+		InPlayerCount++;
+		if (InPlayerCount >= RequiredPlayers)
+		{
+			InPlayerCount = RequiredPlayers;
 			OpenDoor();
 		}
 	}
@@ -78,37 +90,65 @@ void AProximityDoor::OnOpenEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 {
 	if (!Cast<AChronoSwitchCharacter>(OtherActor))
 		return;
-	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+	if (bUseGlobalSharedCounter)
 	{
-		GS->SharedPlayersAtDoor--;
+		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
+		{
+			GS->SharedPlayersAtDoor--;
+		}
+	}
+	else
+	{
+		InPlayerCount--;
 	}
 }
 
 void AProximityDoor::OnCloseBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (BoxColliderOpen->IsOverlappingActor(OtherActor))
+		return;
+	if (bUseGlobalSharedCounter)
 	{
-		if (!BoxColliderOpen->IsOverlappingActor(OtherActor))
+		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 		{
-			OutPlayerCount--;
+			GS->SharedPlayersAtDoorExit--;
 		}
+	}
+	else
+	{
+		OutPlayerCount--;
 	}
 }
 
 void AProximityDoor::OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (Cast<AChronoSwitchCharacter>(OtherActor))
+	if (!Cast<AChronoSwitchCharacter>(OtherActor))
+		return;
+	if (BoxColliderOpen->IsOverlappingActor(OtherActor))
+		return;
+	if (bUseGlobalSharedCounter)
 	{
-		if (!BoxColliderOpen->IsOverlappingActor(OtherActor))
+		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 		{
-			OutPlayerCount++;
-			if (OutPlayerCount >= RequiredPlayersOnExit)
+			GS->SharedPlayersAtDoorExit++;
+			if (GS->SharedPlayersAtDoorExit >= RequiredPlayersOnExit)
 			{
-				OutPlayerCount = RequiredPlayersOnExit;
+				GS->SharedPlayersAtDoorExit = RequiredPlayersOnExit;
 				CloseDoor();
 			}
+		}
+	}
+	else
+	{
+		OutPlayerCount++;
+		if (OutPlayerCount >= RequiredPlayersOnExit)
+		{
+			OutPlayerCount = RequiredPlayersOnExit;
+			CloseDoor();
 		}
 	}
 }

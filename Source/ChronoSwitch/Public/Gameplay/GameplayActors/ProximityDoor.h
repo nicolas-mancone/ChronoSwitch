@@ -32,6 +32,8 @@ public:
 	uint8 RequiredPlayers = 2;
 	UPROPERTY(EditAnywhere, Category="Door")
 	uint8 RequiredPlayersOnExit = 2;
+	UPROPERTY(EditAnywhere, Category="Door")
+	bool bUseGlobalSharedCounter = false;
 
 protected:
 	// Called when the game starts or when spawned
@@ -67,6 +69,7 @@ protected:
 	UFUNCTION()
 	void OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
+	// These replication methods should not be needed for collider driven logic, might be removed
 	UFUNCTION()
 	void OnRep_OutPlayerCount();
 	UFUNCTION()
