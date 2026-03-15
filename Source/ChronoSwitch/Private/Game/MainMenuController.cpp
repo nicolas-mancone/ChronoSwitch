@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Game/ChronoSwitchGameInstance.h"
 #include "UI/InviteReceivedWidget.h"
+#include "UI/LevelSelectionWidget.h"
 #include "UI/SessionsWidget.h"
 
 void AMainMenuController::BeginPlay()
@@ -17,18 +18,30 @@ void AMainMenuController::BeginPlay()
 	SetInputMode(FInputModeUIOnly());
 	
 	SessionsWidget = CreateWidget<USessionsWidget>(this, SessionsWidgetClass);
+	LevelSelectionWidget = CreateWidget<ULevelSelectionWidget>(this, LevelSelectionWidgetClass);
 	InviteReceivedWidget = CreateWidget<UInviteReceivedWidget>(this, InviteReceivedWidgetClass);
 	
-	if (SessionsWidget)
+	if (SessionsWidget &&  LevelSelectionWidget)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MainMenuController.cpp: Added widget to viewport"));
+		UE_LOG(LogTemp, Warning, TEXT("MainMenuController.cpp: Added Sessions Widget to viewport"));
 		SessionsWidget->AddToViewport();
 	}
 	
 	Cast<UChronoSwitchGameInstance>(GetGameInstance())->OnInviteReceivedSignal.AddDynamic(this, &AMainMenuController::OnInviteReceived);
 }
 
+void AMainMenuController::ChangeWidget()
+{
+	SessionsWidget->RemoveFromParent();
+	UE_LOG(LogTemp, Warning, TEXT("MainMenuController.cpp: Added Level Selection Widget to viewport"));
+	LevelSelectionWidget->AddToViewport();
+}
+
 void AMainMenuController::OnInviteReceived()
 {
-	InviteReceivedWidget->AddToViewport();
+	if (InviteReceivedWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MainMenuController.cpp: Added Invite Received Widget to viewport"));
+		InviteReceivedWidget->AddToViewport();
+	}
 }

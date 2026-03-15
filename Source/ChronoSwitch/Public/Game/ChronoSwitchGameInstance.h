@@ -36,7 +36,7 @@ public:
 	void OpenExternalInviteDialog();
 	
 	/** The map to travel to when hosting a session. Format: "/Game/Path/To/Map" */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Session")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Session")
 	TSoftObjectPtr<UWorld> LobbyMap;
 	
 	// Broadcast Signals
