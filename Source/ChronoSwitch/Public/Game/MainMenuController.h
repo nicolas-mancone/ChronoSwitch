@@ -7,6 +7,7 @@
 #include "MainMenuController.generated.h"
 
 class USessionsWidget;
+class ULevelSelectionWidget;
 class UInviteReceivedWidget;
 
 /**
@@ -23,12 +24,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> SessionsWidgetClass;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> LevelSelectionWidgetClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> InviteReceivedWidgetClass;
 	
 	UPROPERTY()
 	USessionsWidget* SessionsWidget;
 	UPROPERTY()
+	ULevelSelectionWidget* LevelSelectionWidget;
+	UPROPERTY()
 	UInviteReceivedWidget* InviteReceivedWidget;
+	
+	UFUNCTION(BlueprintCallable)
+	void ChangeWidget();
 	
 protected:
 	UFUNCTION()

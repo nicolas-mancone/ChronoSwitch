@@ -71,6 +71,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
 	uint8 SharedPlayersAtDoor = 0;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
+	uint8 SharedPlayersAtDoorExit = 0;
+	
 protected:
 	virtual void BeginPlay() override;
 

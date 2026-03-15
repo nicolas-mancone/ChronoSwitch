@@ -22,11 +22,11 @@ To maximize performance, the world remains static while the **Character** handle
 </div>
 <br>
 
-### 2. Causal Actor System (Physics Synchronization)
+### 2. Causal Actor System (Async Physics Synchronization)
 The `CausalActor` (inheriting from `TimelineBaseActor`) manages objects that exist across both timelines simultaneously.
 - **State Management:** Uses an `Enum` to define visibility and collision. In the `Both_Causal` state, the object is physically active in both eras.
-- **Transform Tracking:** Custom C++ logic ensures the "Future" mesh constantly aligns with the "Past" mesh's transform. 
-- **Physics Correction:** If pushed by physics, it uses corrective impulses to maintain sync. If "grabbed" by the player, it performs direct transform updates to prevent desynchronization between timelines.
+- **Async Physics Tick:** To ensure deterministic and stable networked physics using UE5's Chaos engine, the synchronization logic is decoupled from the main game thread. All physics calculations run entirely within the **Async Physics Tick**.
+- **Causal Spring Logic:** Custom C++ logic ensures the "Future" mesh actively tracks the authoritative "Past" mesh's transform. Instead of forcing direct transform updates on a standard tick (which causes jitter and breaks collision responses), the system applies calculated corrective impulses and custom "spring" forces directly within the physics thread, maintaining perfect sync even during complex collisions.
 
 <br>
 <div align="center">
