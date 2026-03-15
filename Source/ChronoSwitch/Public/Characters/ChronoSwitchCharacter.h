@@ -59,8 +59,12 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraSpringArm;
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh, meta = (AllowPrivateAccess = "true"))
-	// USkeletalMeshComponent* FirstPersonMeshComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PostProcess")
+	UMaterialInterface* PostProcessBaseMaterial;
+
+	UPROPERTY(BlueprintReadOnly, Category = "PostProcess")
+	UMaterialInstanceDynamic* PostProcessDynamicMaterial;
 #pragma endregion
 
 #pragma region UI

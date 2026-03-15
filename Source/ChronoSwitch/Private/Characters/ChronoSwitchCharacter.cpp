@@ -22,8 +22,8 @@
 
 AChronoSwitchCharacter::AChronoSwitchCharacter()
 {
-	// Enable ticking to handle per-frame logic for player-vs-player interaction.
 	PrimaryActorTick.bCanEverTick = true;
+	
 	// Update before physics to ensure passengers can react to the moving base in the same frame.
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	
@@ -38,20 +38,9 @@ AChronoSwitchCharacter::AChronoSwitchCharacter()
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 64.0f));
 	FirstPersonCameraComponent->bUsePawnControlRotation = false;
 	
-	// Create the first-person mesh (arms), attached to the camera.
-	// This mesh is only visible to the owning player.
-	// FirstPersonMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-	// FirstPersonMeshComponent->SetupAttachment(FirstPersonCameraComponent);
-	// FirstPersonMeshComponent->SetOnlyOwnerSee(true);
-	// FirstPersonMeshComponent->bCastDynamicShadow = false;
-	// FirstPersonMeshComponent->CastShadow = false;
-	
 	// Sets default private variables
 	GrabbedComponent = nullptr;
 	GrabbedRelativeRotation = FRotator::ZeroRotator;
-	
-	// The third-person body mesh should not be visible to the owning player.
-	//GetMesh()->SetOwnerNoSee(true);
 
 	// Initialize state trackers
 	HeldObjectPos = FVector::ZeroVector;
@@ -79,6 +68,17 @@ void AChronoSwitchCharacter::BeginPlay()
 			{
 				Subsystem->AddMappingContext(DefaultMappingContext, 0);
 			}
+		}
+	}
+	
+	if (PostProcessBaseMaterial && FirstPersonCameraComponent)
+	{
+		PostProcessDynamicMaterial = UMaterialInstanceDynamic::Create(PostProcessBaseMaterial, this);
+		
+		if (PostProcessDynamicMaterial)
+		{
+			FWeightedBlendable Blendable(1.0f, PostProcessDynamicMaterial);
+			FirstPersonCameraComponent->PostProcessSettings.WeightedBlendables.Array.Add(Blendable);
 		}
 	}
 	
