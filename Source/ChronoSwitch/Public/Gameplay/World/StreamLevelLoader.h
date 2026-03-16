@@ -29,12 +29,32 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UBoxComponent> TriggerZone;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming|Timing")
+	float MinTransitionDuration = 5.0f;
 
 protected:
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Level Streaming|Events")
+	void ReceiveTransitionStart();
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Level Streaming|Events")
+	void ReceiveTransitionEnd();
+	
+	// RPC to trigger the start visuals on all clients
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_TransitionStart();
+
+	// RPC to trigger the end visuals on all clients
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_TransitionEnd();
 
 	// Unload current level
 	void StartLevelTransition();
@@ -46,6 +66,21 @@ protected:
 	// Finalize 
 	UFUNCTION()
 	void OnLevelLoaded();
+	
+	UFUNCTION()
+	void OnWaitTimerFinished();
+	
+	void CheckTransitionComplete();
 
 	FLatentActionInfo GetLatentAction(int32 ID, FName FunctionName);
+	
+private:
+	UPROPERTY()
+	TArray<TObjectPtr<APawn>> PlayersInZone;
+	
+	bool bIsTransitioning = false;
+	bool bIsNextLevelReady = false;
+	bool bIsWaitTimerDone = false;
+	
+	FTimerHandle WaitTimerHandle;
 };

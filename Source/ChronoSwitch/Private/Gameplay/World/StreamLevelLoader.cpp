@@ -3,11 +3,12 @@
 #include "Gameplay/World/StreamLevelLoader.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "GameFramework/Character.h"
 
 AStreamLevelLoader::AStreamLevelLoader()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	
+	bReplicates = true;
 
 	TriggerZone = CreateDefaultSubobject<UBoxComponent>(TEXT("TriggerZone"));
 	RootComponent = TriggerZone;
@@ -17,15 +18,36 @@ AStreamLevelLoader::AStreamLevelLoader()
 void AStreamLevelLoader::BeginPlay()
 {
 	Super::BeginPlay();
-	TriggerZone->OnComponentBeginOverlap.AddDynamic(this, &AStreamLevelLoader::OnOverlapBegin);
+	
+	if (HasAuthority())
+	{
+		TriggerZone->OnComponentBeginOverlap.AddDynamic(this, &AStreamLevelLoader::OnOverlapBegin);
+		TriggerZone->OnComponentEndOverlap.AddDynamic(this, &AStreamLevelLoader::OnOverlapEnd);
+	}
 }
 
 void AStreamLevelLoader::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->IsA(ACharacter::StaticClass()) && HasAuthority())
+	APawn* PlayerPawn = Cast<APawn>(OtherActor);
+	if (PlayerPawn && PlayerPawn->IsPlayerControlled() && !bIsTransitioning)
 	{
-		// TODO: Check if ALL players are inside before starting.
-		StartLevelTransition();
+		PlayersInZone.AddUnique(PlayerPawn);
+ 
+		// Check if all players in the session are inside the lift
+		const int32 NumPlayers = GetWorld()->GetNumPlayerControllers();
+		if (NumPlayers > 0 && PlayersInZone.Num() >= NumPlayers)
+		{
+			StartLevelTransition();
+		}
+	}
+}
+
+void AStreamLevelLoader::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	APawn* PlayerPawn = Cast<APawn>(OtherActor);
+	if (PlayerPawn && !bIsTransitioning)
+	{
+		PlayersInZone.Remove(PlayerPawn);
 	}
 }
 
@@ -33,6 +55,16 @@ void AStreamLevelLoader::StartLevelTransition()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Loader: Transition Starting..."));
 
+	bIsTransitioning = true;
+	bIsNextLevelReady = false;
+	bIsWaitTimerDone = false;
+ 
+	// Tell ALL clients (and the server) to close doors and start Niagara effects
+	Multicast_TransitionStart();
+ 
+	// Start the minimum wait timer
+	GetWorld()->GetTimerManager().SetTimer(WaitTimerHandle, this, &AStreamLevelLoader::OnWaitTimerFinished, MinTransitionDuration, false);
+	
 	// Unload Current Level
 	if (!CurrentLevel.IsNull())
 	{
@@ -56,7 +88,7 @@ void AStreamLevelLoader::OnLevelUnloaded()
 	{
 		FName LevelName = FName(*NextLevel.ToSoftObjectPath().GetLongPackageName());
 		FLatentActionInfo LatentInfo = GetLatentAction(1, "OnLevelLoaded");
-		UGameplayStatics::LoadStreamLevel(this, LevelName, true, true, LatentInfo);
+		UGameplayStatics::LoadStreamLevel(this, LevelName, true, false, LatentInfo);
 	}
 }
 
@@ -64,9 +96,34 @@ void AStreamLevelLoader::OnLevelLoaded()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Loader: Next Level Ready."));
 	
-	// Update References 
-	CurrentLevel = NextLevel;
-	NextLevel = nullptr; 
+	bIsNextLevelReady = true;
+	CheckTransitionComplete();
+}
+
+void AStreamLevelLoader::OnWaitTimerFinished()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Loader: Wait Timer Finished."));
+ 
+	bIsWaitTimerDone = true;
+	CheckTransitionComplete();
+}
+
+void AStreamLevelLoader::CheckTransitionComplete()
+{
+	// Only proceed if BOTH the loading is done AND the minimum visual time has passed
+	if (bIsNextLevelReady && bIsWaitTimerDone)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Loader: Transition Fully Complete. Opening Doors."));
+ 
+		// Update References for the next transition
+		CurrentLevel = NextLevel;
+		NextLevel = nullptr; 
+ 
+		// Tell ALL clients (and the server) to stop effects and open doors
+		Multicast_TransitionEnd();
+ 
+		bIsTransitioning = false;
+	}
 }
 
 FLatentActionInfo AStreamLevelLoader::GetLatentAction(int32 ID, FName FunctionName)
@@ -77,4 +134,14 @@ FLatentActionInfo AStreamLevelLoader::GetLatentAction(int32 ID, FName FunctionNa
 	Info.Linkage = ID;
 	Info.UUID = ID; // Unique ID for the latent action manager
 	return Info;
+}
+
+void AStreamLevelLoader::Multicast_TransitionStart_Implementation()
+{
+	ReceiveTransitionStart();
+}
+
+void AStreamLevelLoader::Multicast_TransitionEnd_Implementation()
+{
+	ReceiveTransitionEnd();
 }
