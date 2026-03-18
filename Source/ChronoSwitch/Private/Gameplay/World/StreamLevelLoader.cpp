@@ -121,8 +121,7 @@ void AStreamLevelLoader::CheckTransitionComplete()
  
 		// Tell ALL clients (and the server) to stop effects and open doors
 		Multicast_TransitionEnd();
- 
-		bIsTransitioning = false;
+		
 	}
 }
 
