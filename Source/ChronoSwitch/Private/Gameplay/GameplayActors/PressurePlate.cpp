@@ -50,6 +50,7 @@ void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
 		if (GS->SharedPlayersOnPlate == 1)
 		{
+			OnPressurePlatePressed();
 			GS->SetGlobalTimeline(TimelineToSet);
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
 		}
@@ -66,6 +67,7 @@ void APressurePlate::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		GS->SharedPlayersOnPlate--;
 		if (GS->SharedPlayersOnPlate == 0)
 		{
+			OnPressurePlateReleased();
 			GS->SetGlobalTimeline(TimelineToSet == 0 ? 1 : 0 );
 		}
 	}

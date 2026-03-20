@@ -170,6 +170,9 @@ protected:
 	/** Server RPC: Validates and executes the release logic. */
 	UFUNCTION(Server, Reliable)
 	void Server_Interact(UObject* Object, ACharacter* Interactor);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
+	void OnObjectGrabbed();
 
 	UPROPERTY(EditAnywhere, Category = "Interaction")
 	float ReachDistance = 300.0f;

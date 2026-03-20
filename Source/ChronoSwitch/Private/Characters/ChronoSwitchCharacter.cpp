@@ -269,7 +269,7 @@ void AChronoSwitchCharacter::Server_Grab_Implementation()
 	if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::None))
 	{
 		APhysicsTimelineActor* PhysicsActor = Cast<APhysicsTimelineActor>(HitResult.GetActor());
-
+		
 		// Validate PhysicsTimelineActor logic (e.g., check if already held or priority logic).
 		if (PhysicsActor)
 		{
@@ -384,6 +384,8 @@ void AChronoSwitchCharacter::OnRep_GrabbedComponent(UPrimitiveComponent* OldComp
 	// Grabbed: Disable physics on client to prevent fighting with server updates.
 	if (GrabbedComponent)
 	{
+		OnObjectGrabbed();
+		
 		GrabbedComponent->SetSimulatePhysics(false);
 		
 		GrabbedComponent->IgnoreActorWhenMoving(this, true);

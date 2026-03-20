@@ -30,6 +30,7 @@ void ASwitchButton::Tick(float DeltaTime)
 
 void ASwitchButton::Interact_Implementation(ACharacter* Interactor)
 {
+	OnButtonPressed();
 	AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>();
 	CurrentButtonTimeline = CurrentButtonTimeline ? 0 : 1;
 	GS->SetGlobalTimeline(CurrentButtonTimeline);

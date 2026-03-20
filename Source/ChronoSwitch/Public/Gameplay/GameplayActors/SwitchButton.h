@@ -27,6 +27,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
+	void OnButtonPressed();
+	
 	UPROPERTY(EditDefaultsOnly, Replicated, Category="SwitchButton")
 	uint8 CurrentButtonTimeline = 0;
 	
