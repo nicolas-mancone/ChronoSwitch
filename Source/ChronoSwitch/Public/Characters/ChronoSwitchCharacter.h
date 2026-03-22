@@ -239,8 +239,14 @@ protected:
 	/** Finds and caches the other player character in the world. */
 	void CacheOtherPlayerCharacter();
 	
+	/** Attempts to cache the other player and states. */
+	void TryCachePlayers();
+
 	/** Handles symmetrical player-vs-player collision logic. */
-	void UpdatePlayerCollision(AChronoSwitchPlayerState* MyPS, AChronoSwitchPlayerState* OtherPS);
+	void UpdatePlayerCollision();
+
+	/** Handler for the other player's timeline update to refresh collisions dynamically. */
+	void HandleOtherPlayerTimelineUpdate(uint8 NewTimelineID);
 	
 	/** Handles asymmetrical visibility logic for rendering the other player. */
 	void UpdatePlayerVisibility(AChronoSwitchPlayerState* MyPS, AChronoSwitchPlayerState* OtherPS, float DeltaTime);
@@ -262,6 +268,9 @@ private:
 #pragma region Internal State
 	/** Timer handle for retrying the PlayerState binding if it's not immediately available. */
 	FTimerHandle PlayerStateBindTimer;
+
+	/** Timer handle for finding and caching the other player and their state. */
+	FTimerHandle PlayerCachingTimer;
 
 	/** Current blend value for the timeline material transition (0.0 to 1.0). */
 	float CurrentTimelineBlend;

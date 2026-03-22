@@ -47,6 +47,12 @@ protected:
 	/** Visual-only mesh that appears when the Past and Future meshes desynchronize. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Causal Settings|Visuals")
 	TObjectPtr<UStaticMeshComponent> GhostMesh;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UAudioComponent> PastAudioComp;
+ 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<class UAudioComponent> FutureAudioComp;
 
 	// --- Physics Configuration ---
 
@@ -85,14 +91,42 @@ protected:
 	/** The character currently holding the FutureMesh. Tracked separately from the base InteractingCharacter (which tracks PastMesh). */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Causal State")
 	TObjectPtr<ACharacter> FutureInteractingCharacter;
+	
+	UFUNCTION()
+	void OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	/** Triggered when a mesh hits something, but ONLY if the local player is in the same timeline. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Causal Settings|Audio")
+	void ReceiveOnMeshImpact(FVector ImpactLocation, float ImpactForce);
+	
+	/** Triggered when the distance between meshes exceeds the DesyncThreshold. Good for spawning particles. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Causal Settings|Audio")
+	void ReceiveOnDesyncStarted();
+ 
+	/** Triggered when the meshes return within the DesyncThreshold. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Causal Settings|Audio")
+	void ReceiveOnDesyncEnded();
+ 
+	/** Continuously triggered while desynced. Intensity is normalized 0.0 to 1.0 based on MaxPullDistance. */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Causal Settings|Audio")
+	void ReceiveOnDesyncUpdated(float Distance, float Intensity);
 
 private:
 	/** Updates the position of the FutureMesh based on the PastMesh's state. */
 	void UpdateSlaveMesh(float DeltaTime);
 
-	/** Updates the visibility and location of the GhostMesh based on desync distance. */
-	void UpdateGhostVisuals() const;
+	/** Updates visual (GhostMesh) and audio states based on the desync distance between meshes. */
+	void UpdateDesyncState();
 
 	/** Tracks the velocity of the FutureMesh during kinematic movement to apply upon release. */
 	FVector FutureMeshVelocity;
+
+	/** Tracks the last time an impact sound was triggered to prevent audio spam. */
+	float LastImpactSoundTime = 0.0f;
+	
+	/** Tracks if the actor is currently in a desynced state. */
+	bool bIsDesynced = false;
+ 
+	/** Tracks the last distance used for audio updates to throttle calls. */
+	float LastDesyncDistance = -1.0f;
 };

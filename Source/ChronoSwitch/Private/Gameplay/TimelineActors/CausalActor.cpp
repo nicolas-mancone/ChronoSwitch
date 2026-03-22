@@ -5,6 +5,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/Character.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/AudioComponent.h"
+#include "Game/ChronoSwitchPlayerState.h"
 #include "GameFramework/PlayerState.h"
 #include "Physics/PhysicsInterfaceCore.h"
 #include "Net/UnrealNetwork.h"
@@ -40,6 +42,15 @@ ACausalActor::ACausalActor()
 	GhostMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GhostMesh->SetHiddenInGame(true);
 	GhostMesh->SetCastShadow(false);
+
+	// Configure Audio Components
+	PastAudioComp = CreateDefaultSubobject<UAudioComponent>("PastAudioComp");
+	PastAudioComp->SetupAttachment(RootComponent);
+	PastAudioComp->bAutoActivate = false;
+
+	FutureAudioComp = CreateDefaultSubobject<UAudioComponent>("FutureAudioComp");
+	FutureAudioComp->SetupAttachment(FutureMesh);
+	FutureAudioComp->bAutoActivate = false;
 	
 	// Configure Past Mesh (Master)
 	if (PastMesh)
@@ -87,6 +98,17 @@ void ACausalActor::BeginPlay()
 	if (PastMesh) PastMesh->SetSimulatePhysics(true);
 	if (FutureMesh) FutureMesh->SetSimulatePhysics(true);
 	
+	// Enable Hit Events and bind the callback
+	if (PastMesh)
+	{
+		PastMesh->SetNotifyRigidBodyCollision(true);
+		PastMesh->OnComponentHit.AddDynamic(this, &ACausalActor::OnMeshHit);
+	}
+	if (FutureMesh)
+	{
+		FutureMesh->SetNotifyRigidBodyCollision(true);
+		FutureMesh->OnComponentHit.AddDynamic(this, &ACausalActor::OnMeshHit);
+	}
 }
 
 void ACausalActor::Tick(float DeltaTime)
@@ -94,7 +116,7 @@ void ACausalActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	UpdateSlaveMesh(DeltaTime);
-	UpdateGhostVisuals();
+	UpdateDesyncState();
 }
 
 void ACausalActor::Interact_Implementation(ACharacter* Interactor)
@@ -358,20 +380,90 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 	}
 }
 
-void ACausalActor::UpdateGhostVisuals() const
+void ACausalActor::UpdateDesyncState()
 {
 	if (!GhostMesh || !PastMesh || !FutureMesh) return;
 
 	const float Distance = FVector::Dist(PastMesh->GetComponentLocation(), FutureMesh->GetComponentLocation());
+	const bool bCurrentlyDesynced = Distance > DesyncThreshold;
 
-	if (Distance > DesyncThreshold)
+	// State Change: Start or Stop the desync effects
+	if (bCurrentlyDesynced != bIsDesynced)
 	{
-		// Show Ghost at the "True" location (where the PastMesh is).
-		GhostMesh->SetHiddenInGame(false);
-		GhostMesh->SetWorldLocationAndRotation(PastMesh->GetComponentLocation(), PastMesh->GetComponentRotation());
+		bIsDesynced = bCurrentlyDesynced;
+		
+		if (bIsDesynced)
+		{
+			GhostMesh->SetHiddenInGame(false);
+			if (PastAudioComp) PastAudioComp->Play();
+			if (FutureAudioComp) FutureAudioComp->Play();
+			ReceiveOnDesyncStarted();
+		}
+		else
+		{
+			GhostMesh->SetHiddenInGame(true);
+			if (PastAudioComp) PastAudioComp->FadeOut(0.2f, 0.0f);
+			if (FutureAudioComp) FutureAudioComp->FadeOut(0.2f, 0.0f);
+			ReceiveOnDesyncEnded();
+		}
 	}
-	else
+
+	// Continuous Update
+	if (bIsDesynced)
 	{
-		GhostMesh->SetHiddenInGame(true);
+		GhostMesh->SetWorldLocationAndRotation(PastMesh->GetComponentLocation(), PastMesh->GetComponentRotation());
+		
+		uint8 LocalTimelineID = 255;
+		if (const APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			if (const AChronoSwitchPlayerState* PS = PC->GetPlayerState<AChronoSwitchPlayerState>())
+			{
+				LocalTimelineID = PS->GetTimelineID();
+			}
+		}
+		
+		if (PastAudioComp) PastAudioComp->SetVolumeMultiplier(LocalTimelineID == 0 ? 1.0f : 0.0f);
+		if (FutureAudioComp) FutureAudioComp->SetVolumeMultiplier(LocalTimelineID == 1 ? 1.0f : 0.0f);
+
+		if (FMath::Abs(Distance - LastDesyncDistance) > 2.0f)
+		{
+			LastDesyncDistance = Distance;
+			
+			// Calculate a normalized intensity (0.0 to 1.0).
+			const float Intensity = FMath::Clamp((Distance - DesyncThreshold) / (MaxPullDistance - DesyncThreshold), 0.0f, 1.0f);
+			
+			if (PastAudioComp) PastAudioComp->SetFloatParameter(FName("DesyncIntensity"), Intensity);
+			if (FutureAudioComp) FutureAudioComp->SetFloatParameter(FName("DesyncIntensity"), Intensity);
+			
+			ReceiveOnDesyncUpdated(Distance, Intensity);
+		}
+	}
+}
+
+void ACausalActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	// Filter out tiny bumps to avoid sound spam.
+	const float ImpactForce = NormalImpulse.Size();
+	if (ImpactForce < 100.0f) return;
+	
+	// Cooldown check (0.1 seconds) to prevent audio spam from rattling objects.
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - LastImpactSoundTime < 0.1f) return;
+
+	const uint8 MeshTimelineID = (HitComponent == PastMesh) ? 0 : 1;
+	
+	if (const APlayerController* PC = GetWorld()->GetFirstPlayerController())
+	{
+		if (const AChronoSwitchPlayerState* PS = PC->GetPlayerState<AChronoSwitchPlayerState>())
+		{
+			if (PS->GetTimelineID() == MeshTimelineID)
+			{
+				// Call the Blueprint event, passing location and force for volume modulation.
+				ReceiveOnMeshImpact(Hit.ImpactPoint, ImpactForce);
+				
+				// Update the cooldown timer
+				LastImpactSoundTime = CurrentTime;
+			}
+		}
 	}
 }

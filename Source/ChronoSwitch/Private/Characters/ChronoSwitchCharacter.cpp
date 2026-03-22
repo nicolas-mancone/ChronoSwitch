@@ -59,6 +59,9 @@ void AChronoSwitchCharacter::BeginPlay()
 	// This will retry if the PlayerState is not immediately available.
 	BindToPlayerState();	
 
+	// Start a timer to find and cache the other player.
+	GetWorldTimerManager().SetTimer(PlayerCachingTimer, this, &AChronoSwitchCharacter::TryCachePlayers, 0.5f, true);
+
 	// Add the input mapping context for the local player.
 	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -100,29 +103,8 @@ void AChronoSwitchCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Ensure the other player character is cached for efficiency.
-	if (!CachedOtherPlayerCharacter.IsValid())
-	{
-		CacheOtherPlayerCharacter();
-	}
-
-	// Cache both player states to avoid fetching them multiple times per frame.
-	if (!CachedMyPlayerState.IsValid())
-	{
-		CachedMyPlayerState = GetPlayerState<AChronoSwitchPlayerState>();
-	}
-	if (!CachedOtherPlayerState.IsValid() && CachedOtherPlayerCharacter.IsValid())
-	{
-		if(const auto OtherChar = Cast<AChronoSwitchCharacter>(CachedOtherPlayerCharacter.Get()))
-		{
-			CachedOtherPlayerState = OtherChar->GetPlayerState<AChronoSwitchPlayerState>();
-		}
-	}
-
-	// Execute interaction and visibility logic.
 	if (CachedMyPlayerState.IsValid() && CachedOtherPlayerState.IsValid())
 	{
-		UpdatePlayerCollision(CachedMyPlayerState.Get(), CachedOtherPlayerState.Get());
 		UpdatePlayerVisibility(CachedMyPlayerState.Get(), CachedOtherPlayerState.Get(), DeltaTime);
 	}
 	
@@ -793,6 +775,8 @@ void AChronoSwitchCharacter::HandleTimelineUpdate(uint8 NewTimelineID)
 		CMC->FlushServerMoves();
 	}
 
+	UpdatePlayerCollision();
+
 	OnTimelineChangedCosmetic(NewTimelineID);
 }
 
@@ -849,12 +833,49 @@ void AChronoSwitchCharacter::CacheOtherPlayerCharacter()
 	}
 }
 
-/** Handles symmetrical player-vs-player collision. This logic runs on all machines. */
-void AChronoSwitchCharacter::UpdatePlayerCollision(AChronoSwitchPlayerState* MyPS, AChronoSwitchPlayerState* OtherPS)
+void AChronoSwitchCharacter::TryCachePlayers()
 {
-	if (!CachedOtherPlayerCharacter.IsValid()) return;
+	if (!CachedMyPlayerState.IsValid())
+	{
+		CachedMyPlayerState = GetPlayerState<AChronoSwitchPlayerState>();
+	}
+
+	if (!CachedOtherPlayerCharacter.IsValid())
+	{
+		CacheOtherPlayerCharacter();
+	}
+
+	if (CachedOtherPlayerCharacter.IsValid() && !CachedOtherPlayerState.IsValid())
+	{
+		if (AChronoSwitchCharacter* OtherChar = Cast<AChronoSwitchCharacter>(CachedOtherPlayerCharacter.Get()))
+		{
+			CachedOtherPlayerState = OtherChar->GetPlayerState<AChronoSwitchPlayerState>();
+			if (CachedOtherPlayerState.IsValid())
+			{
+				// Bind to the other player's timeline changes to update collision dynamically.
+				CachedOtherPlayerState->OnTimelineIDChanged.AddUObject(this, &AChronoSwitchCharacter::HandleOtherPlayerTimelineUpdate);
+				UpdatePlayerCollision();
+			}
+		}
+	}
 	
-	const bool bAreInSameTimeline = (MyPS->GetTimelineID() == OtherPS->GetTimelineID());
+	if (CachedMyPlayerState.IsValid() && CachedOtherPlayerState.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(PlayerCachingTimer);
+	}
+}
+
+void AChronoSwitchCharacter::HandleOtherPlayerTimelineUpdate(uint8 NewTimelineID)
+{
+	UpdatePlayerCollision();
+}
+
+/** Handles symmetrical player-vs-player collision. This logic runs on all machines. */
+void AChronoSwitchCharacter::UpdatePlayerCollision()
+{
+	if (!CachedOtherPlayerCharacter.IsValid() || !CachedMyPlayerState.IsValid() || !CachedOtherPlayerState.IsValid()) return;
+	
+	const bool bAreInSameTimeline = (CachedMyPlayerState->GetTimelineID() == CachedOtherPlayerState->GetTimelineID());
 	if (bAreInSameTimeline)
 	{
 		// Enable collision if in the same timeline.
@@ -904,18 +925,24 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 			if (CachedBodyMID)
 			{
 				const float TargetBlend = bAreInSameTimeline ? 1.0f : 0.0f;
-				// Interpolate smoothly towards the target value (Speed 4.0 gives a nice transition of ~1.0s).
-				CurrentTimelineBlend = FMath::FInterpTo(CurrentTimelineBlend, TargetBlend, DeltaTime, 4.0f);
-				CachedBodyMID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+				
+				// Only execute the interpolation and parameter setting if we haven't reached the target yet.
+				if (!FMath::IsNearlyEqual(CurrentTimelineBlend, TargetBlend, 0.001f))
+				{
+					CurrentTimelineBlend = FMath::FInterpTo(CurrentTimelineBlend, TargetBlend, DeltaTime, 4.0f);
+					CachedBodyMID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+				}
 
 				// Update Visibility Parameter: 0.0 if Visible, 1.0 if Invisible.
 				const float TargetVisibility = bShouldOtherBeVisible ? 0.0f : 1.0f;
-				CurrentVisibilityBlend = FMath::FInterpTo(CurrentVisibilityBlend, TargetVisibility, DeltaTime, 4.0f);
-				CachedBodyMID->SetScalarParameterValue(FName("FullVanish"), CurrentVisibilityBlend);
+				if (!FMath::IsNearlyEqual(CurrentVisibilityBlend, TargetVisibility, 0.001f))
+				{
+					CurrentVisibilityBlend = FMath::FInterpTo(CurrentVisibilityBlend, TargetVisibility, DeltaTime, 4.0f);
+					CachedBodyMID->SetScalarParameterValue(FName("FullVanish"), CurrentVisibilityBlend);
 
-				// Completely hide the mesh only when fully dissolved (>= 0.99) to save rendering cost.
-				// It will automatically unhide when the value drops below 0.99.
-				OtherPlayerMesh->SetHiddenInGame(CurrentVisibilityBlend >= 0.99f);
+					// Completely hide the mesh only when fully dissolved (>= 0.99) to save rendering cost.
+					OtherPlayerMesh->SetHiddenInGame(CurrentVisibilityBlend >= 0.99f);
+				}
 			}
 		}
 	}
