@@ -180,6 +180,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Interaction")
 	float HoldDistance = 200.0f;
 
+	/** Maximum distance the object can be from the camera before being forcibly dropped (e.g. when stuck behind a wall). */
+	UPROPERTY(EditAnywhere, Category = "Interaction")
+	float MaxHoldDistance = 350.0f;
+
 	/** The component currently being held. Replicated to handle client-side physics state. */
 	UPROPERTY(ReplicatedUsing = OnRep_GrabbedComponent)
 	TObjectPtr<UPrimitiveComponent> GrabbedComponent;

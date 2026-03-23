@@ -298,7 +298,19 @@ void AChronoSwitchCharacter::Server_Grab_Implementation()
 			GetActorEyesViewPoint(CamLoc, CamRot);
 			
 			FRotator ObjectRot = ComponentToGrab->GetComponentRotation();
-			GrabbedRelativeRotation = FRotator(0.0f, ObjectRot.Yaw - CamRot.Yaw, 0.0f);
+			
+			float RawRelativeYaw = FRotator::NormalizeAxis(ObjectRot.Yaw - CamRot.Yaw);
+			
+			float SnappedRelativeYaw = FMath::RoundHalfToEven(RawRelativeYaw / 90.0f) * 90.0f;
+			
+			if (FMath::Abs(RawRelativeYaw - SnappedRelativeYaw) <= 30.0f)
+			{
+				GrabbedRelativeRotation = FRotator(0.0f, SnappedRelativeYaw, 0.0f);
+			}
+			else
+			{
+				GrabbedRelativeRotation = FRotator(0.0f, RawRelativeYaw, 0.0f);
+			}
 			
 			// Update the replicated property so clients know an object is being held.
 			GrabbedComponent = ComponentToGrab; 
@@ -434,7 +446,15 @@ void AChronoSwitchCharacter::UpdateHeldObjectTransform(float DeltaTime)
 		// Explicitly calculate view point for Simulated Proxies to use replicated data.
 		if (IsLocallyControlled() || HasAuthority())
 		{
-			GetActorEyesViewPoint(CameraLoc, CameraRot);
+			if (FirstPersonCameraComponent)
+			{
+				CameraLoc = FirstPersonCameraComponent->GetComponentLocation();
+				CameraRot = FirstPersonCameraComponent->GetComponentRotation();
+			}
+			else
+			{
+				GetActorEyesViewPoint(CameraLoc, CameraRot); 
+			}
 		}
 		else
 		{
@@ -521,6 +541,14 @@ void AChronoSwitchCharacter::UpdateHeldObjectTransform(float DeltaTime)
 		{
 			HeldObjectVelocity = (HeldObjectPos - OldPos) / DeltaTime;
 		}
+
+		if (IsLocallyControlled() || HasAuthority())
+		{
+			if (FVector::Dist(CameraLoc, HeldObjectPos) > MaxHoldDistance)
+			{
+				Release();
+			}
+		}
 	}
 }
 
@@ -543,7 +571,7 @@ void AChronoSwitchCharacter::OnTickSenseInteractable()
 	else
 	{
 		FHitResult HitResult;
-		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::ForDuration))
+		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::None))
 		{
 			NewSensedActor = ValidateInteractable(HitResult.GetActor(), HitResult.GetComponent());
 		}
@@ -588,10 +616,18 @@ void AChronoSwitchCharacter::UpdateInteractWidget()
 /** Performs a box trace from the camera to find an interactable object. */
 bool AChronoSwitchCharacter::BoxTraceFront(FHitResult& OutHit, const float DrawDistance, const EDrawDebugTrace::Type Type)
 {
-	// Use GetActorEyesViewPoint for consistency across Client and Server.
 	FVector Start;
 	FRotator Rot;
-	GetActorEyesViewPoint(Start, Rot);
+
+	if (FirstPersonCameraComponent)
+	{
+		Start = FirstPersonCameraComponent->GetComponentLocation();
+		Rot = FirstPersonCameraComponent->GetComponentRotation();
+	}
+	else
+	{
+		GetActorEyesViewPoint(Start, Rot); 
+	}
 
 	const FVector End = Start + Rot.Vector() * DrawDistance;
 	const FVector HalfSize = FVector(2.f, 2.f, 2.f);

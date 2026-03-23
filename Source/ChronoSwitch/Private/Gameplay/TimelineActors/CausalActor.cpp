@@ -442,15 +442,29 @@ void ACausalActor::UpdateDesyncState()
 
 void ACausalActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// Filter out tiny bumps to avoid sound spam.
-	const float ImpactForce = NormalImpulse.Size();
-	if (ImpactForce < 100.0f) return;
+	if (OtherActor == this) return;
 	
-	// Cooldown check (0.1 seconds) to prevent audio spam from rattling objects.
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LastImpactSoundTime < 0.1f) return;
+	const FVector MyVelocity = HitComponent->GetComponentVelocity();
+	const FVector OtherVelocity = OtherComp ? OtherComp->GetComponentVelocity() : FVector::ZeroVector;
+	const FVector RelativeVelocity = MyVelocity - OtherVelocity;
+	
+	const float ApproachSpeed = -FVector::DotProduct(RelativeVelocity, Hit.ImpactNormal);
+
+	if (ApproachSpeed < 50.0f) return;
 
 	const uint8 MeshTimelineID = (HitComponent == PastMesh) ? 0 : 1;
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+
+	if (MeshTimelineID == 0)
+	{
+		if (CurrentTime - LastImpactTime_Past < 0.1f) return;
+		LastImpactTime_Past = CurrentTime;
+	}
+	else
+	{
+		if (CurrentTime - LastImpactTime_Future < 0.1f) return;
+		LastImpactTime_Future = CurrentTime;
+	}
 	
 	if (const APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -458,11 +472,8 @@ void ACausalActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherAct
 		{
 			if (PS->GetTimelineID() == MeshTimelineID)
 			{
-				// Call the Blueprint event, passing location and force for volume modulation.
-				ReceiveOnMeshImpact(Hit.ImpactPoint, ImpactForce);
-				
-				// Update the cooldown timer
-				LastImpactSoundTime = CurrentTime;
+				// Call Blueprint event, passing the approach speed as the "Force" for volume modulation.
+				ReceiveOnMeshImpact(Hit.ImpactPoint, ApproachSpeed);
 			}
 		}
 	}

@@ -121,8 +121,11 @@ private:
 	/** Tracks the velocity of the FutureMesh during kinematic movement to apply upon release. */
 	FVector FutureMeshVelocity;
 
-	/** Tracks the last time an impact sound was triggered to prevent audio spam. */
-	float LastImpactSoundTime = 0.0f;
+	/** Tracks the last time an impact sound was triggered for the PastMesh. */
+	float LastImpactTime_Past = 0.0f;
+
+	/** Tracks the last time an impact sound was triggered for the FutureMesh. */
+	float LastImpactTime_Future = 0.0f;
 	
 	/** Tracks if the actor is currently in a desynced state. */
 	bool bIsDesynced = false;
