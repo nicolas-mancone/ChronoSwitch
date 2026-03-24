@@ -20,7 +20,7 @@ ASlidingDoor::ASlidingDoor()
 	DoorMesh->SetupAttachment(SceneRoot);
 	DoorFrameMesh->SetupAttachment(SceneRoot);
 	
-	SetReplicates(true);
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned

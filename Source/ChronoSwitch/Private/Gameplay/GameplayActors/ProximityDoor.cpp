@@ -33,7 +33,7 @@ AProximityDoor::AProximityDoor()
 	BoxColliderClose1->SetCollisionObjectType(ECC_WorldDynamic);
 	BoxColliderClose1->SetCollisionResponseToAllChannels(ECR_Overlap);
 	
-	SetReplicates(true);
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned

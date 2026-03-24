@@ -23,7 +23,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
 	float SlideSpeed = 1;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
-	float SlideOffset = 100;
+	float SlideOffset = 120;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OpenDoor();
