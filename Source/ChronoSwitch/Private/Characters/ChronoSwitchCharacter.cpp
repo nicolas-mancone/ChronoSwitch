@@ -27,6 +27,10 @@ AChronoSwitchCharacter::AChronoSwitchCharacter()
 	// Update before physics to ensure passengers can react to the moving base in the same frame.
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	
+	// Set default speed to walking speed.
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	TargetWalkSpeed = WalkSpeed;
+	
 	CameraSpringArm = CreateDefaultSubobject<USpringArmComponent>("CameraSpringArm");
 	CameraSpringArm->SetupAttachment(GetMesh(), FName("Eyes_Socket"));
 	CameraSpringArm->TargetArmLength = 0.0f;
@@ -111,6 +115,12 @@ void AChronoSwitchCharacter::Tick(float DeltaTime)
 	// Update the held object's position and rotation.
 	UpdateHeldObjectTransform(DeltaTime);
 	
+	// Smoothly interpolate the MaxWalkSpeed towards the TargetWalkSpeed for gradual sprint transitions.
+	if (!FMath::IsNearlyEqual(GetCharacterMovement()->MaxWalkSpeed, TargetWalkSpeed, 0.5f))
+	{
+		GetCharacterMovement()->MaxWalkSpeed = FMath::FInterpTo(GetCharacterMovement()->MaxWalkSpeed, TargetWalkSpeed, DeltaTime, SprintAccelerationSpeed);
+	}
+
 	// Checks for interactable objects in front of the player
 	OnTickSenseInteractable();
 }
@@ -159,6 +169,12 @@ void AChronoSwitchCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		{
 			EnhancedInput->BindAction(TimeSwitchAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::OnTimeSwitchPressed);
 		}
+
+		if (SprintAction)
+		{
+			EnhancedInput->BindAction(SprintAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::StartSprinting);
+			EnhancedInput->BindAction(SprintAction, ETriggerEvent::Completed, this, &AChronoSwitchCharacter::StopSprinting);
+		}
 	}
 }
 
@@ -201,6 +217,18 @@ void AChronoSwitchCharacter::JumpStart()
 void AChronoSwitchCharacter::JumpStop()
 {
 	StopJumping();
+}
+
+void AChronoSwitchCharacter::StartSprinting()
+{
+	TargetWalkSpeed = SprintSpeed;
+	Server_SetMaxWalkSpeed(SprintSpeed);
+}
+
+void AChronoSwitchCharacter::StopSprinting()
+{
+	TargetWalkSpeed = WalkSpeed;
+	Server_SetMaxWalkSpeed(WalkSpeed);
 }
 
 /** Handles the interact action, performing a trace to find an interactable object. */
@@ -371,6 +399,11 @@ void AChronoSwitchCharacter::Server_Release_Implementation()
 void AChronoSwitchCharacter::Server_Interact_Implementation(UObject* Object, ACharacter* Interactor)
 {
 	IInteractable::Execute_Interact(Object, Interactor);
+}
+
+void AChronoSwitchCharacter::Server_SetMaxWalkSpeed_Implementation(float NewSpeed)
+{
+	TargetWalkSpeed = NewSpeed;
 }
 
 void AChronoSwitchCharacter::OnRep_GrabbedComponent(UPrimitiveComponent* OldComponent)

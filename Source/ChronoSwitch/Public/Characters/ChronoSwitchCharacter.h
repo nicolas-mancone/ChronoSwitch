@@ -91,6 +91,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
 	TObjectPtr<UInputAction> TimeSwitchAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
+	TObjectPtr<UInputAction> SprintAction;
+	
 	/** Handles movement input. */
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
@@ -104,6 +107,14 @@ protected:
 	
 	UFUNCTION()
 	void JumpStop();
+	
+	/** Called when the sprint input is started. */
+	UFUNCTION()
+	void StartSprinting();
+
+	/** Called when the sprint input is completed. */
+	UFUNCTION()
+	void StopSprinting();
 	
 	/** Handles interaction input (Release > Interact > Grab). */
 	UFUNCTION()
@@ -166,6 +177,10 @@ protected:
 	/** Server RPC: Validates and executes the release logic. */
 	UFUNCTION(Server, Reliable)
 	void Server_Release();
+	
+	/** Server RPC: Sets the character's max walk speed. */
+	UFUNCTION(Server, Reliable)
+	void Server_SetMaxWalkSpeed(float NewSpeed);
 	
 	/** Server RPC: Validates and executes the release logic. */
 	UFUNCTION(Server, Reliable)
@@ -257,6 +272,21 @@ protected:
 #pragma endregion 
 
 #pragma region Player Movement
+	/** The character's normal walking speed. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerMovement")
+	float WalkSpeed = 300.0f;
+
+	/** The character's sprinting speed. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerMovement")
+	float SprintSpeed = 600.0f;
+	
+	/** How fast the character transitions between walking and sprinting. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PlayerMovement")
+	float SprintAccelerationSpeed = 8.0f;
+
+	/** Internal target speed for smooth interpolation. */
+	float TargetWalkSpeed;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "PlayerMovement")
 	float CoyoteTimeWindow;
 	
