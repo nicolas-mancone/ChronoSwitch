@@ -51,7 +51,6 @@ AChronoSwitchCharacter::AChronoSwitchCharacter()
 	HeldObjectVelocity = FVector::ZeroVector;
 	CurrentTimelineBlend = 0.0f;
 	CurrentVisibilityBlend = 0.0f;
-	CachedBodyMID = nullptr;
 	CoyoteTimeWindow = 0.15f;
 }
 
@@ -977,21 +976,27 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 		const bool bShouldOtherBeVisibleAsGhost = !bAreInSameTimeline && bIsVisorActive;
 		const bool bShouldOtherBeVisible = bAreInSameTimeline || bShouldOtherBeVisibleAsGhost;
 		
-		// Update Material Parameter: 1.0 if in same timeline, 0.0 if different.
-		// We check slot 0 (usually the body). Ensure your material has a Scalar Parameter named "TimelineBlend".
-		if (OtherPlayerMesh->GetNumMaterials() > 0)
+		// Update Material Parameters: 1.0 if in same timeline, 0.0 if different.
+		// We update all slots on the mesh. Ensure your materials have Scalar Parameters named "MaterialState" and "FullVanish".
+		const int32 NumMaterials = OtherPlayerMesh->GetNumMaterials();
+		if (NumMaterials > 0)
 		{
-			// Cache the Dynamic Material Instance to avoid casting every frame.
-			if (!CachedBodyMID)
+			// Cache the Dynamic Material Instances to avoid creating/casting every frame.
+			if (CachedBodyMIDs.Num() != NumMaterials)
 			{
-				CachedBodyMID = Cast<UMaterialInstanceDynamic>(OtherPlayerMesh->GetMaterial(0));
-				if (!CachedBodyMID)
+				CachedBodyMIDs.Empty(NumMaterials);
+				for (int32 i = 0; i < NumMaterials; ++i)
 				{
-					CachedBodyMID = OtherPlayerMesh->CreateAndSetMaterialInstanceDynamic(0);
+					UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(OtherPlayerMesh->GetMaterial(i));
+					if (!MID)
+					{
+						MID = OtherPlayerMesh->CreateAndSetMaterialInstanceDynamic(i);
+					}
+					CachedBodyMIDs.Add(MID);
 				}
 			}
 			
-			if (CachedBodyMID)
+			if (CachedBodyMIDs.Num() > 0)
 			{
 				const float TargetBlend = bAreInSameTimeline ? 1.0f : 0.0f;
 				
@@ -999,7 +1004,10 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 				if (!FMath::IsNearlyEqual(CurrentTimelineBlend, TargetBlend, 0.001f))
 				{
 					CurrentTimelineBlend = FMath::FInterpTo(CurrentTimelineBlend, TargetBlend, DeltaTime, 4.0f);
-					CachedBodyMID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+					for (UMaterialInstanceDynamic* MID : CachedBodyMIDs)
+					{
+						if (MID) MID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+					}
 				}
 
 				// Update Visibility Parameter: 0.0 if Visible, 1.0 if Invisible.
@@ -1007,7 +1015,10 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 				if (!FMath::IsNearlyEqual(CurrentVisibilityBlend, TargetVisibility, 0.001f))
 				{
 					CurrentVisibilityBlend = FMath::FInterpTo(CurrentVisibilityBlend, TargetVisibility, DeltaTime, 4.0f);
-					CachedBodyMID->SetScalarParameterValue(FName("FullVanish"), CurrentVisibilityBlend);
+					for (UMaterialInstanceDynamic* MID : CachedBodyMIDs)
+					{
+						if (MID) MID->SetScalarParameterValue(FName("FullVanish"), CurrentVisibilityBlend);
+					}
 
 					// Completely hide the mesh only when fully dissolved (>= 0.99) to save rendering cost.
 					OtherPlayerMesh->SetHiddenInGame(CurrentVisibilityBlend >= 0.99f);

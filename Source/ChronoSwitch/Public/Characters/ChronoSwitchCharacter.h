@@ -312,9 +312,9 @@ private:
 	/** Current blend value for the visibility transition (0.0 = Visible, 1.0 = Invisible). */
 	float CurrentVisibilityBlend;
 
-	/** Cached pointer to the dynamic material instance of the other player to avoid casting every frame. */
+	/** Cached pointers to the dynamic material instances of the other player to avoid casting every frame. */
 	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInstanceDynamic> CachedBodyMID;
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> CachedBodyMIDs;
 	
 	UPROPERTY(Transient)
 	float JumpGraceTimeExpiration;
