@@ -47,6 +47,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light")
 	ETimelineLightMode LightMode = ETimelineLightMode::ColorShift;
+	
+	/** The units to use for the light's intensity. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light")
+	ELightUnits IntensityUnits = ELightUnits::Candelas;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light|Past State")
 	FLinearColor PastColor = FLinearColor::White;
@@ -59,6 +63,20 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light|Future State")
 	float FutureIntensity = 5000.0f;
+
+	// --- Temperature Settings ---
+
+	/** If true, the light will use Temperature (in Kelvin) instead of the RGB color. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light|Temperature")
+	bool bUseTemperature = false;
+
+	/** Light temperature (in Kelvin) for the Past timeline. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light|Temperature", meta = (EditCondition = "bUseTemperature", UIMin = "1700", UIMax = "12000"))
+	float PastTemperature = 8000.0f;
+
+	/** Light temperature (in Kelvin) for the Future timeline. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timeline Light|Temperature", meta = (EditCondition = "bUseTemperature", UIMin = "1700", UIMax = "12000"))
+	float FutureTemperature = 4000.0f;
 
 	// --- Transition Settings ---
 
@@ -75,8 +93,10 @@ protected:
 private:
 	FLinearColor CurrentColor;
 	float CurrentIntensity;
+	float CurrentTemperature;
 	FLinearColor TargetColor;
 	float TargetIntensity;
+	float TargetTemperature;
 	bool bIsTurningOff = false;
 	bool bHasInitialized = false;
 };

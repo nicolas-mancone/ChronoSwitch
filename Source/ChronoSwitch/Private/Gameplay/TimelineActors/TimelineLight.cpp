@@ -1,5 +1,6 @@
 ﻿#include "Gameplay/TimelineActors/TimelineLight.h"
 #include "Components/LightComponent.h"
+#include "Components/LocalLightComponent.h"
 #include "Gameplay/ActorComponents/TimelineObserverComponent.h"
 
 ATimelineLight::ATimelineLight()
@@ -25,6 +26,11 @@ void ATimelineLight::BeginPlay()
 	if (LightComponent)
 	{
 		LightComponent->SetMobility(EComponentMobility::Movable);
+		LightComponent->SetUseTemperature(bUseTemperature);
+		if (ULocalLightComponent* LocalLight = Cast<ULocalLightComponent>(LightComponent))
+		{
+			LocalLight->SetIntensityUnits(IntensityUnits);
+		}
 	}
 
 	if (TimelineObserver)
@@ -60,15 +66,27 @@ void ATimelineLight::HandleTimelineUpdated(uint8 CurrentTimelineID, bool bIsViso
 			break;
 	}
 
+	TargetTemperature = bIsInPast ? PastTemperature : FutureTemperature;
+
 	// Bypass transition if disabled or during initial setup to prevent unwanted fade-in effects on level load.
 	if (!bSmoothTransition || !bHasInitialized)
 	{
 		CurrentColor = TargetColor;
 		CurrentIntensity = TargetIntensity;
+		CurrentTemperature = TargetTemperature;
 
-		LightComponent->SetLightColor(TargetColor);
+		// Apply final state directly
 		LightComponent->SetIntensity(TargetIntensity);
 		LightComponent->SetVisibility(!bIsTurningOff);
+
+		if (bUseTemperature)
+		{
+			LightComponent->SetTemperature(TargetTemperature);
+		}
+		else
+		{
+			LightComponent->SetLightColor(TargetColor);
+		}
 		
 		bHasInitialized = true;
 		SetActorTickEnabled(false);
@@ -93,18 +111,41 @@ void ATimelineLight::Tick(float DeltaTime)
 	// Use high-precision internal variables for interpolation.
 	// Component getters often return quantized 8-bit values (e.g., FColor) which degrade FInterpTo smoothness.
 	CurrentIntensity = FMath::FInterpTo(CurrentIntensity, TargetIntensity, DeltaTime, TransitionSpeed);
-	CurrentColor = FMath::CInterpTo(CurrentColor, TargetColor, DeltaTime, TransitionSpeed);
+	
+	if (bUseTemperature)
+	{
+		CurrentTemperature = FMath::FInterpTo(CurrentTemperature, TargetTemperature, DeltaTime, TransitionSpeed);
+		LightComponent->SetTemperature(CurrentTemperature);
+	}
+	else
+	{
+		CurrentColor = FMath::CInterpTo(CurrentColor, TargetColor, DeltaTime, TransitionSpeed);
+		LightComponent->SetLightColor(CurrentColor);
+	}
 
 	LightComponent->SetIntensity(CurrentIntensity);
-	LightComponent->SetLightColor(CurrentColor);
 
-	if (FMath::IsNearlyEqual(CurrentIntensity, TargetIntensity, 1.0f) && CurrentColor.Equals(TargetColor, 0.01f))
+	const bool bIntensityReached = FMath::IsNearlyEqual(CurrentIntensity, TargetIntensity, 1.0f);
+	const bool bColorReached = bUseTemperature
+		? FMath::IsNearlyEqual(CurrentTemperature, TargetTemperature, 10.0f)
+		: CurrentColor.Equals(TargetColor, 0.01f);
+
+	if (bIntensityReached && bColorReached)
 	{
+		// Snap to final values to ensure precision
 		CurrentIntensity = TargetIntensity;
-		CurrentColor = TargetColor;
-		
 		LightComponent->SetIntensity(TargetIntensity);
-		LightComponent->SetLightColor(TargetColor);
+
+		if (bUseTemperature)
+		{
+			CurrentTemperature = TargetTemperature;
+			LightComponent->SetTemperature(TargetTemperature);
+		}
+		else
+		{
+			CurrentColor = TargetColor;
+			LightComponent->SetLightColor(TargetColor);
+		}
 		
 		if (bIsTurningOff) LightComponent->SetVisibility(false);
 
