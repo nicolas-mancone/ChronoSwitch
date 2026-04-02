@@ -7,33 +7,32 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
-#include "Game/ChronoSwitchGameState.h"
+#include "Gameplay/ActorComponents/DoorComponent.h"
 
 // Sets default values
 AProximityDoor::AProximityDoor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	
 	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
+	DoorComponent = CreateDefaultSubobject<UDoorComponent>("DoorComponent");
 	DoorPivotScene = CreateDefaultSubobject<USceneComponent>("DoorPivotScene");
 	DoorMesh1 = CreateDefaultSubobject<UStaticMeshComponent>("DoorMesh1");
 	DoorMesh2 = CreateDefaultSubobject<UStaticMeshComponent>("DoorMesh2");
 	BoxColliderOpen = CreateDefaultSubobject<UBoxComponent>("BoxColliderOpen");
-	BoxColliderClose1 = CreateDefaultSubobject<UBoxComponent>("BoxColliderClose1");
+	BoxColliderClose = CreateDefaultSubobject<UBoxComponent>("BoxColliderClose");
 	DoorPivotScene->SetupAttachment(SceneRoot);
 	DoorMesh1->SetupAttachment(DoorPivotScene);
 	DoorMesh2->SetupAttachment(DoorPivotScene);
 	BoxColliderOpen->SetupAttachment(SceneRoot);
-	BoxColliderClose1->SetupAttachment(SceneRoot);
+	BoxColliderClose->SetupAttachment(SceneRoot);
 	BoxColliderOpen->SetCollisionObjectType(ECC_WorldDynamic);
 	BoxColliderOpen->SetCollisionResponseToAllChannels(ECR_Overlap);
-	BoxColliderClose1->SetCollisionObjectType(ECC_WorldDynamic);
-	BoxColliderClose1->SetCollisionResponseToAllChannels(ECR_Overlap);
-	
-	bReplicates = true;
+	BoxColliderClose->SetCollisionObjectType(ECC_WorldDynamic);
+	BoxColliderClose->SetCollisionResponseToAllChannels(ECR_Overlap);
 }
 
 // Called when the game starts or when spawned
@@ -41,13 +40,13 @@ void AProximityDoor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (BoxColliderOpen && BoxColliderClose1)
+	if (BoxColliderOpen && BoxColliderClose)
 	{
 		BoxColliderOpen->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnOpenBeginOverlap);
 		BoxColliderOpen->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnOpenEndOverlap);
 		
-		BoxColliderClose1->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnCloseBeginOverlap);
-		BoxColliderClose1->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnCloseEndOverlap);
+		BoxColliderClose->OnComponentBeginOverlap.AddDynamic(this, &AProximityDoor::OnCloseBeginOverlap);
+		BoxColliderClose->OnComponentEndOverlap.AddDynamic(this, &AProximityDoor::OnCloseEndOverlap);
 	}
 }
 
@@ -62,26 +61,11 @@ void AProximityDoor::OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent
 {
 	if (!Cast<AChronoSwitchCharacter>(OtherActor))
 		return;
-	if (bUseGlobalSharedCounter)
+	InPlayerCount++;
+	if (InPlayerCount >= RequiredPlayers)
 	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-		{
-			GS->SharedPlayersAtDoor++;
-			if (GS->SharedPlayersAtDoor >= RequiredPlayers)
-			{
-				GS->SharedPlayersAtDoor = RequiredPlayers;
-				OpenDoor();
-			}
-		}
-	}
-	else
-	{
-		InPlayerCount++;
-		if (InPlayerCount >= RequiredPlayers)
-		{
-			InPlayerCount = RequiredPlayers;
-			OpenDoor();
-		}
+		InPlayerCount = RequiredPlayers;
+		OpenDoor();
 	}
 }
 
@@ -90,17 +74,7 @@ void AProximityDoor::OnOpenEndOverlap(UPrimitiveComponent* OverlappedComponent, 
 {
 	if (!Cast<AChronoSwitchCharacter>(OtherActor))
 		return;
-	if (bUseGlobalSharedCounter)
-	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-		{
-			GS->SharedPlayersAtDoor--;
-		}
-	}
-	else
-	{
-		InPlayerCount--;
-	}
+	InPlayerCount--;
 }
 
 void AProximityDoor::OnCloseBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -110,17 +84,7 @@ void AProximityDoor::OnCloseBeginOverlap(UPrimitiveComponent* OverlappedComponen
 		return;
 	if (BoxColliderOpen->IsOverlappingActor(OtherActor))
 		return;
-	if (bUseGlobalSharedCounter)
-	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-		{
-			GS->SharedPlayersAtDoorExit--;
-		}
-	}
-	else
-	{
-		OutPlayerCount--;
-	}
+	OutPlayerCount--;
 }
 
 void AProximityDoor::OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -130,46 +94,10 @@ void AProximityDoor::OnCloseEndOverlap(UPrimitiveComponent* OverlappedComponent,
 		return;
 	if (BoxColliderOpen->IsOverlappingActor(OtherActor))
 		return;
-	if (bUseGlobalSharedCounter)
+	OutPlayerCount++;
+	if (OutPlayerCount >= RequiredPlayers)
 	{
-		if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
-		{
-			GS->SharedPlayersAtDoorExit++;
-			if (GS->SharedPlayersAtDoorExit >= RequiredPlayersOnExit)
-			{
-				GS->SharedPlayersAtDoorExit = RequiredPlayersOnExit;
-				CloseDoor();
-			}
-		}
-	}
-	else
-	{
-		OutPlayerCount++;
-		if (OutPlayerCount >= RequiredPlayersOnExit)
-		{
-			OutPlayerCount = RequiredPlayersOnExit;
-			CloseDoor();
-		}
-	}
-}
-
-void AProximityDoor::OnRep_InPlayerCount()
-{
-	if (InPlayerCount >= RequiredPlayers)
-		OpenDoor();
-}
-
-void AProximityDoor::OnRep_OutPlayerCount()
-{
-	if (OutPlayerCount >= RequiredPlayersOnExit)
+		OutPlayerCount = RequiredPlayers;
 		CloseDoor();
-}
-
-void AProximityDoor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	// Registering variables for replication
-	DOREPLIFETIME(AProximityDoor, OutPlayerCount);
-	DOREPLIFETIME(AProximityDoor, InPlayerCount);
+	}
 }

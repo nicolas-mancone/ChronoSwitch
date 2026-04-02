@@ -6,6 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "GameFramework/Character.h"
+#include "Gameplay/ActorComponents/DoorComponent.h"
 
 
 // Sets default values
@@ -61,7 +62,7 @@ void ADoorLever::Interact_Implementation(ACharacter* Interactor)
 
 FText ADoorLever::GetInteractPrompt_Implementation()
 {
-	return FText::FromString("Toggle Lever"); 
+	return FText::FromString("Press Button"); 
 }
 
 void ADoorLever::OnRep_bIsPulled()

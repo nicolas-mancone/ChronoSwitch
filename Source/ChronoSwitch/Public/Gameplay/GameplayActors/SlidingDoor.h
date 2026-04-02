@@ -7,6 +7,7 @@
 #include "SlidingDoor.generated.h"
 
 class UStaticMeshComponent;
+class UDoorComponent;
 
 UCLASS()
 class CHRONOSWITCH_API ASlidingDoor : public AActor
@@ -19,11 +20,6 @@ public:
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
-	float SlideSpeed = 1;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Door")
-	float SlideOffset = 120;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OpenDoor();
@@ -38,4 +34,6 @@ protected:
 	UStaticMeshComponent* DoorMesh;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
 	UStaticMeshComponent* DoorFrameMesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
+	UDoorComponent* DoorComponent;
 };

@@ -4,18 +4,20 @@
 #include "Gameplay/GameplayActors/SlidingDoor.h"
 
 #include "Components/StaticMeshComponent.h"
+#include "Gameplay/ActorComponents/DoorComponent.h"
 
 // Sets default values
 ASlidingDoor::ASlidingDoor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	
 	USceneComponent* SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 	
 	DoorMesh = CreateDefaultSubobject<UStaticMeshComponent>("Door");
 	DoorFrameMesh = CreateDefaultSubobject<UStaticMeshComponent>("DoorFrame");
+	DoorComponent = CreateDefaultSubobject<UDoorComponent>("DoorComponent");
 	
 	DoorMesh->SetupAttachment(SceneRoot);
 	DoorFrameMesh->SetupAttachment(SceneRoot);
