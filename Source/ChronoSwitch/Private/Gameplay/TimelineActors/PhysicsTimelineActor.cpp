@@ -1,9 +1,11 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Gameplay/TimelineActors/PhysicsTimelineActor.h"
+
 #include "Components/StaticMeshComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/CanForceRelease.h"
 
 APhysicsTimelineActor::APhysicsTimelineActor()
 {
@@ -130,4 +132,26 @@ bool APhysicsTimelineActor::CanBeGrabbed(UPrimitiveComponent* MeshToGrab) const
 {
 	// Default logic: Can only be grabbed if not currently held by anyone.
 	return InteractedComponent == nullptr;
+}
+
+bool APhysicsTimelineActor::CanBeGrabbed() const
+{
+	// Default logic: Can only be grabbed if not currently held by anyone.
+	return InteractedComponent == nullptr;
+}
+
+void APhysicsTimelineActor::DetachFromCharacter() const
+{
+	if (InteractingCharacter)
+	{
+		if (InteractingCharacter->GetClass()->ImplementsInterface(UCanForceRelease::StaticClass()))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Force Release"));
+			ICanForceRelease::Execute_ForceRelease(InteractingCharacter);
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Not Force Release"));
+		}
+	}
 }

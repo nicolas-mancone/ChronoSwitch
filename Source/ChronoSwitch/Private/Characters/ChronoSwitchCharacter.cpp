@@ -267,6 +267,11 @@ void AChronoSwitchCharacter::Release()
 	Server_Release();
 }
 
+void AChronoSwitchCharacter::ForceRelease_Implementation()
+{
+	Release();
+}
+
 void AChronoSwitchCharacter::Server_Grab_Implementation()
 {
 	// Cannot grab if already holding something (check the replicated pointer).
@@ -603,7 +608,7 @@ void AChronoSwitchCharacter::OnTickSenseInteractable()
 	else
 	{
 		FHitResult HitResult;
-		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::None))
+		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::ForDuration))
 		{
 			NewSensedActor = ValidateInteractable(HitResult.GetActor(), HitResult.GetComponent());
 		}

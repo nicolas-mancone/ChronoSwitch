@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/CanForceRelease.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "ChronoSwitchCharacter.generated.h"
 
@@ -16,7 +17,7 @@ class UInteractPromptWidget;
 class AChronoSwitchPlayerState;
 
 UCLASS()
-class CHRONOSWITCH_API AChronoSwitchCharacter : public ACharacter
+class CHRONOSWITCH_API AChronoSwitchCharacter : public ACharacter, public ICanForceRelease
 {
 	GENERATED_BODY()
 
@@ -168,6 +169,9 @@ public:
 	
 	/** Initiates the release logic. */
 	void Release();
+	
+	/** Initiates the release logic from outside source. */
+	virtual void ForceRelease_Implementation() override;
 
 protected:
 	/** Server RPC: Validates and executes the grab logic. */
