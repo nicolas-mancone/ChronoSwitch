@@ -71,6 +71,7 @@ void ACausalActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ACausalActor, FutureInteractingCharacter);
+	DOREPLIFETIME(ACausalActor, ServerFutureTransform);
 }
 
 void ACausalActor::BeginPlay()
@@ -95,6 +96,11 @@ void ACausalActor::BeginPlay()
 		FutureMesh->SetNotifyRigidBodyCollision(true);
 		FutureMesh->OnComponentHit.AddDynamic(this, &ACausalActor::OnMeshHit);
 	}
+
+	if (HasAuthority() && FutureMesh)
+	{
+		ServerFutureTransform = FutureMesh->GetComponentTransform();
+	}
 }
 
 void ACausalActor::Tick(float DeltaTime)
@@ -103,6 +109,56 @@ void ACausalActor::Tick(float DeltaTime)
 	
 	UpdateSlaveMesh(DeltaTime);
 	UpdateDesyncState();
+
+	// --- Network Correction for Detached FutureMesh ---
+	if (HasAuthority() && FutureMesh)
+	{
+		// The Server acts as the source of truth for the FutureMesh's transform.
+		ServerFutureTransform = FutureMesh->GetComponentTransform();
+	}
+	else if (!HasAuthority() && FutureMesh && FutureMesh->IsSimulatingPhysics())
+	{
+		// Clients apply a soft physics-based correction to align with the server,
+		// falling back to a hard teleport if the desync is too severe.
+		const FVector LocalLoc = FutureMesh->GetComponentLocation();
+		const FVector ServerLoc = ServerFutureTransform.GetLocation();
+		const float ErrorDistSq = FVector::DistSquared(LocalLoc, ServerLoc);
+		
+		if (ErrorDistSq > 40000.0f)
+		{
+			FutureMesh->SetWorldTransform(ServerFutureTransform, false, nullptr, ETeleportType::TeleportPhysics);
+		}
+		else if (ErrorDistSq > 1.0f)
+		{
+			const FVector ErrorDir = ServerLoc - LocalLoc;
+
+			// Apply higher force at close ranges to overcome static ground friction.
+			const float ForceMultiplier = (ErrorDistSq < 100.0f) ? 150.0f : 50.0f;
+			const FVector CorrectionAccel = ErrorDir * ForceMultiplier; 
+			
+			FutureMesh->AddForce(CorrectionAccel, NAME_None, true); 
+
+			const FQuat LocalRot = FutureMesh->GetComponentQuat();
+			const FQuat ServerRot = ServerFutureTransform.GetRotation();
+			FQuat ErrorRot = ServerRot * LocalRot.Inverse();
+
+			FVector Axis;
+			float Angle;
+			ErrorRot.ToAxisAndAngle(Axis, Angle);
+			if (Angle > UE_PI) Angle -= 2.0f * UE_PI;
+
+			const float TorqueMultiplier = (FMath::Abs(Angle) < 0.2f) ? 150.0f : 50.0f;
+			const FVector AngularAccel = Axis * Angle * TorqueMultiplier;
+			FutureMesh->AddTorqueInRadians(AngularAccel, NAME_None, true);
+
+			// "Last Mile Snap": If the object is extremely close (< 5 cm) and nearly stationary,
+			// force perfect alignment. This guarantees reliable grab interaction without visual jitter.
+			if (ErrorDistSq < 25.0f && FutureMesh->GetPhysicsLinearVelocity().SizeSquared() < 100.0f)
+			{
+				FutureMesh->SetWorldTransform(ServerFutureTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			}
+		}
+	}
 }
 
 void ACausalActor::Interact_Implementation(ACharacter* Interactor)
@@ -264,6 +320,7 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 
 			FCalculateCustomPhysics CalculateCustomPhysics = FCalculateCustomPhysics::CreateLambda([Stiffness, Damping, MaxDist, MaxAccel, MasterBodyInst, FallbackTarget, FallbackRotation](float PhysicsDeltaTime, FBodyInstance* BI)
 			{
+				// Asynchronous physics calculation: Pulls the FutureMesh towards the PastMesh using a spring-damper system.
 				if (!BI || !BI->IsValidBodyInstance()) return;
 
 				const FTransform BodyTransform = BI->GetUnrealWorldTransform_AssumesLocked();
@@ -364,6 +421,7 @@ void ACausalActor::UpdateDesyncState()
 
 		if (FMath::Abs(Distance - LastDesyncDistance) > 2.0f)
 		{
+			// Throttle audio parameter updates to avoid unnecessary continuous overhead.
 			LastDesyncDistance = Distance;
 			
 			const float Intensity = FMath::Clamp((Distance - DesyncThreshold) / (MaxPullDistance - DesyncThreshold), 0.0f, 1.0f);
@@ -386,6 +444,7 @@ void ACausalActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherAct
 	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 	if (!HitComponent->IsSimulatingPhysics() && Hit.TraceStart != Hit.TraceEnd && DeltaTime > UE_KINDA_SMALL_NUMBER)
 	{
+		// If the hit component is currently kinematic, calculate its velocity manually using the hit trace delta.
 		if (Hit.Distance <= 1.0f) return;
 
 		MyVelocity = (Hit.TraceEnd - Hit.TraceStart) / DeltaTime;
@@ -405,6 +464,7 @@ void ACausalActor::OnMeshHit(UPrimitiveComponent* HitComponent, AActor* OtherAct
 	{
 		if (CurrentTime - LastImpactTime_Past < 0.1f) return;
 		
+		// Debounce sustained collisions (e.g., sliding or resting on a slope) to prevent audio and event spam.
 		if (CurrentTime - LastImpactTime_Past < 0.4f && FVector::DotProduct(LastImpactNormal_Past, Hit.ImpactNormal) > 0.95f)
 		{
 			LastImpactTime_Past = CurrentTime; 

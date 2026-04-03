@@ -34,15 +34,15 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	/** Visual mesh shown when Past and Future meshes desynchronize. */
+	/** Visual indicator displayed when the Past and Future meshes diverge significantly. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Causal Settings|Visuals")
 	TObjectPtr<UStaticMeshComponent> GhostMesh;
 	
-	/** Audio component attached to the PastMesh. */
+	/** Handles audio feedback for physical impacts and desync events in the Past timeline. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UAudioComponent> PastAudioComp;
  
-	/** Audio component attached to the FutureMesh. */
+	/** Handles audio feedback for physical impacts and desync events in the Future timeline. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<class UAudioComponent> FutureAudioComp;
 
@@ -62,19 +62,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Causal Settings|Physics")
 	float MaxPullDistance;
 
-	/** Maximum acceleration applied by the spring to prevent wall tunneling. */
+	/** Maximum acceleration applied by the spring. Caps extreme forces to prevent wall tunneling. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Causal Settings|Physics")
 	float MaxAcceleration;
 
-	/** Maximum velocity limit to ensure stable physics collisions. */
+	/** Caps the overall physics velocity to ensure stable collisions at high speeds. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Causal Settings|Physics")
 	float MaxVelocity;
 
-	/** Interpolation speed for kinematic syncing when the mesh is held. */
+	/** Determines how smoothly the FutureMesh tracks the PastMesh when handled by a player. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Causal Settings|Interaction")
 	float HeldInterpSpeed;
 
-	/** Vertical tolerance to detect players standing on the mesh. */
+	/** Z-axis distance used to detect if a player is standing on the mesh, preventing physics loops during lifting. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Causal Settings|Interaction")
 	float LiftVerticalTolerance;
 
@@ -106,17 +106,22 @@ private:
 
 	void UpdateDesyncState();
 
+	/** Tracked manually during kinematic movement (when held) to preserve momentum upon release. */
 	FVector FutureMeshVelocity;
 
+	// --- Impact Debouncing State ---
+	// Used to filter out continuous sliding or multi-hit frame spam, ensuring clean audio triggers.
 	float LastImpactTime_Past = 0.0f;
-
 	float LastImpactTime_Future = 0.0f;
-
 	FVector LastImpactNormal_Past = FVector::ZeroVector;
-
 	FVector LastImpactNormal_Future = FVector::ZeroVector;
 	
+	// --- Desync Optimization State ---
+	// Caches the current state to avoid triggering audio/visual parameter updates every single frame.
 	bool bIsDesynced = false;
- 
 	float LastDesyncDistance = -1.0f;
+
+	/** Authoritative Server transform used to smoothly correct client-side physics drift. */
+	UPROPERTY(Replicated)
+	FTransform ServerFutureTransform;
 };
