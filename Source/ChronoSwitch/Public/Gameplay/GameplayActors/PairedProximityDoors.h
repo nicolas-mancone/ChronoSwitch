@@ -65,6 +65,8 @@ protected:
 	UPROPERTY()
 	uint8 InPlayerCountD2 = 0;
 	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsClosed = false;
 	
 	UFUNCTION()
 	void OnOpenBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

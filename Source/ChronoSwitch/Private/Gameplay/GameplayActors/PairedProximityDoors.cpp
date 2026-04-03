@@ -85,18 +85,24 @@ void APairedProximityDoors::OnOpenBeginOverlap(UPrimitiveComponent* OverlappedCo
 		return;
 	if (OverlappedComponent == BoxColliderOpenD1)
 	{
+		if (BoxColliderCloseD1->IsOverlappingActor(OtherActor))
+			return;
 		InPlayerCountD1++;
 		if (InPlayerCountD1 > 0 && InPlayerCountD2 > 0)
 		{
-			OpenDoor();
+			if (!bIsClosed)
+				OpenDoor();
 		}
 	}
 	else if (OverlappedComponent == BoxColliderOpenD2)
 	{
+		if (BoxColliderCloseD2->IsOverlappingActor(OtherActor))
+			return;
 		InPlayerCountD2++;
 		if (InPlayerCountD1 > 0 && InPlayerCountD2 > 0)
 		{
-			OpenDoor();
+			if (!bIsClosed)
+				OpenDoor();
 		}
 	}
 }
@@ -108,11 +114,17 @@ void APairedProximityDoors::OnOpenEndOverlap(UPrimitiveComponent* OverlappedComp
 		return;
 	if (OverlappedComponent == BoxColliderOpenD1)
 	{
+		if (BoxColliderCloseD1->IsOverlappingActor(OtherActor))
+			return;
 		InPlayerCountD1--;
+		CloseDoor();
 	}
 	else if (OverlappedComponent == BoxColliderOpenD2)
 	{
+		if (BoxColliderCloseD2->IsOverlappingActor(OtherActor))
+			return;
 		InPlayerCountD2--;
+		CloseDoor();
 	}
 }
 
@@ -147,6 +159,7 @@ void APairedProximityDoors::OnCloseEndOverlap(UPrimitiveComponent* OverlappedCom
 		OutPlayerCountD1++;
 		if (OutPlayerCountD1 > 0 && OutPlayerCountD2 > 0)
 		{
+			bIsClosed = true;
 			CloseDoor();
 		}
 	}
@@ -157,6 +170,7 @@ void APairedProximityDoors::OnCloseEndOverlap(UPrimitiveComponent* OverlappedCom
 		OutPlayerCountD2++;
 		if (OutPlayerCountD1 > 0 && OutPlayerCountD2 > 0)
 		{
+			bIsClosed = true;
 			CloseDoor();
 		}
 	}
