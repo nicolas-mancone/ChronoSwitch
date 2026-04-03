@@ -30,6 +30,10 @@ public:
 
 	/** Checks if the specific component can be grabbed. Virtual to allow complex logic in derived classes. */
 	virtual bool CanBeGrabbed(UPrimitiveComponent* MeshToGrab) const;
+	virtual bool CanBeGrabbed() const;
+	
+	/** Allows for independent detachment from Character. Virtual to allow complex logic in derived classes. */
+	virtual void DetachFromCharacter() const;
 
 protected:
 	virtual void BeginPlay() override;
