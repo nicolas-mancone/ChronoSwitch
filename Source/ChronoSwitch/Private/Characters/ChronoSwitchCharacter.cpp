@@ -327,7 +327,16 @@ void AChronoSwitchCharacter::Server_Grab_Implementation()
 			// Calculate relative rotation (Yaw only) to keep the object upright.
 			FVector CamLoc;
 			FRotator CamRot;
-			GetActorEyesViewPoint(CamLoc, CamRot);
+			
+			if (FirstPersonCameraComponent)
+			{
+				CamLoc = FirstPersonCameraComponent->GetComponentLocation();
+				CamRot = FirstPersonCameraComponent->GetComponentRotation();
+			}
+			else
+			{
+				GetActorEyesViewPoint(CamLoc, CamRot);
+			}
 			
 			FRotator ObjectRot = ComponentToGrab->GetComponentRotation();
 			
@@ -677,21 +686,13 @@ bool AChronoSwitchCharacter::BoxTraceFront(FHitResult& OutHit, const float DrawD
 		return false;
 	}
 	
-	// Select the correct Object and Player channels based on the timeline.
+	// Select the correct trace channel based on the timeline.
 	const ECollisionChannel TargetChannel = (PS->GetTimelineID() == 0) ? ECC_GameTraceChannel3 : ECC_GameTraceChannel4;
-	const ECollisionChannel PlayerChannel = (PS->GetTimelineID() == 0) ? ECC_GameTraceChannel1 : ECC_GameTraceChannel2;
 
-	// Use Object Trace to detect specific timeline objects.
-	// Reuse the member array to avoid heap allocation every frame.
-	ReusableTraceObjectTypes.Reset(); // Resets count but keeps memory capacity.
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(TargetChannel));
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(PlayerChannel));
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_PhysicsBody));
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldDynamic));
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
-	ReusableTraceObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
+	// Convert the collision channel to a trace type query for a Channel Trace
+	ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(TargetChannel);
 	
-	return UKismetSystemLibrary::LineTraceSingleForObjects(GetWorld(), Start, End, ReusableTraceObjectTypes, false, ActorsToIgnore, Type, OutHit, true, FLinearColor::Red, FLinearColor::Green, 1.f);
+	return UKismetSystemLibrary::LineTraceSingle(GetWorld(), Start, End, TraceChannel, false, ActorsToIgnore, Type, OutHit, true, FLinearColor::Red, FLinearColor::Green, 1.f);
 }
 
 #pragma endregion
