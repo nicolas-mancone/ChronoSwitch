@@ -9,7 +9,6 @@
 AChronoSwitchGameMode::AChronoSwitchGameMode()
 {
 	bUseSeamlessTravel = true;
-	bIsFirstLevel = false;
 }
 
 void AChronoSwitchGameMode::StartPlay()
@@ -36,14 +35,5 @@ void AChronoSwitchGameMode::StartPlay()
 void AChronoSwitchGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
-
-	if (bIsFirstLevel && NewPlayer)
-	{
-		if (AChronoSwitchGameState* ChronoGS = Cast<AChronoSwitchGameState>(GetWorld()->GetGameState()))
-		{
-			ChronoGS->SetTimeSwitchMode(ETimeSwitchMode::None);
-			ChronoGS->SetGlobalTimeline(0);
-			ChronoGS->SetGlobalVisorState(false);
-		}
-	}
+	
 }

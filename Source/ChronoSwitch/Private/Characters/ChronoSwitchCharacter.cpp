@@ -617,7 +617,7 @@ void AChronoSwitchCharacter::OnTickSenseInteractable()
 	else
 	{
 		FHitResult HitResult;
-		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::ForDuration))
+		if (BoxTraceFront(HitResult, ReachDistance, EDrawDebugTrace::None))
 		{
 			NewSensedActor = ValidateInteractable(HitResult.GetActor(), HitResult.GetComponent());
 		}

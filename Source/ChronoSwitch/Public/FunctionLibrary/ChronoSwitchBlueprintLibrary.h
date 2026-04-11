@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Game/ChronoSwitchGameMode.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Game/ChronoSwitchGameState.h"
 #include "Game/ChronoSwitchPlayerState.h"
@@ -18,6 +19,9 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "ChronoSwitch|Helpers", meta = (WorldContext = "WorldContextObject"))
 	static AChronoSwitchGameState* GetChronoGameState(const UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintPure, Category = "ChronoSwitch|Helpers", meta = (WorldContext = "WorldContextObject"))
+    	static AChronoSwitchGameMode* GetChronoGameMode(const UObject* WorldContextObject);
 
 	/** 
 	 * Returns the ChronoSwitchPlayerState for the provided Controller or Pawn.

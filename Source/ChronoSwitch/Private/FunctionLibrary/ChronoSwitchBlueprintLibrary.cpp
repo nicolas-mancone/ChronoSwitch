@@ -11,6 +11,15 @@ AChronoSwitchGameState* UChronoSwitchBlueprintLibrary::GetChronoGameState(const 
 	return nullptr;
 }
 
+AChronoSwitchGameMode* UChronoSwitchBlueprintLibrary::GetChronoGameMode(const UObject* WorldContextObject)
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+	{
+		return World->GetAuthGameMode<AChronoSwitchGameMode>();
+	}
+	return nullptr;
+}
+
 AChronoSwitchPlayerState* UChronoSwitchBlueprintLibrary::GetChronoPlayerState(const AActor* TargetActor)
 {
 	if (!TargetActor) return nullptr;

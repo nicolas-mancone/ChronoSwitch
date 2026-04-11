@@ -33,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming|Timing")
 	float MinTransitionDuration = 5.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level Streaming|Timing")
+	float UnloadDelay = 2.0f;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -59,6 +62,10 @@ protected:
 	// Unload current level
 	void StartLevelTransition();
 
+	// Actual unload execution after delay
+	UFUNCTION()
+	void ExecuteUnload();
+
 	// Load next level 
 	UFUNCTION()
 	void OnLevelUnloaded();
@@ -83,4 +90,5 @@ private:
 	bool bIsWaitTimerDone = false;
 	
 	FTimerHandle WaitTimerHandle;
+	FTimerHandle UnloadTimerHandle;
 };

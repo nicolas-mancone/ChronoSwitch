@@ -21,8 +21,4 @@ public:
 	
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	
-	
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = "Level Rules")
-	bool bIsFirstLevel = false;
 };

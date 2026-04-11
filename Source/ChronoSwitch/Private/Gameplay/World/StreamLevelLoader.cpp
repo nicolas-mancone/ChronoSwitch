@@ -65,7 +65,20 @@ void AStreamLevelLoader::StartLevelTransition()
 	// Start the minimum wait timer
 	GetWorld()->GetTimerManager().SetTimer(WaitTimerHandle, this, &AStreamLevelLoader::OnWaitTimerFinished, MinTransitionDuration, false);
 	
-	// Unload Current Level
+	// Delay the unload to allow doors to close visually
+	if (UnloadDelay > 0.0f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(UnloadTimerHandle, this, &AStreamLevelLoader::ExecuteUnload, UnloadDelay, false);
+	}
+	else
+	{
+		ExecuteUnload();
+	}
+}
+
+void AStreamLevelLoader::ExecuteUnload()
+{
+	// Execute Unload Current Level
 	if (!CurrentLevel.IsNull())
 	{
 		FName LevelName = FName(*CurrentLevel.ToSoftObjectPath().GetLongPackageName());
