@@ -4,36 +4,37 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "SlidingDoor.generated.h"
+#include "Interfaces/Interactable.h"
+#include "SimpleButton.generated.h"
 
 class UStaticMeshComponent;
-class UDoorComponent;
+class USceneComponent;
 
 UCLASS()
-class CHRONOSWITCH_API ASlidingDoor : public AActor
+class CHRONOSWITCH_API ASimpleButton : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this actor's properties
-	ASlidingDoor();
-
+	ASimpleButton();
+	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<AActor> ActionableActor;
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void OpenDoor();
-	UFUNCTION(BlueprintImplementableEvent)
-	void CloseDoor();
-	
+	virtual void Interact_Implementation(ACharacter* Interactor) override;
+	virtual FText GetInteractPrompt_Implementation() override;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	UStaticMeshComponent* DoorMesh;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	UStaticMeshComponent* DoorFrameMesh;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	UDoorComponent* DoorComponent;
+	UStaticMeshComponent* BaseMesh;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void PressButton();
 };

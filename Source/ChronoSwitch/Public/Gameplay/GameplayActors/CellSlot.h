@@ -5,13 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Gameplay/TimelineActors/FuturePhysicsTimelineActor.h"
-#include "Gameplay/TimelineActors/TimelineBaseActor.h"
+#include "Net/UnrealNetwork.h"
 #include "CellSlot.generated.h"
 
 class UBoxComponent;
 
 UCLASS()
-class CHRONOSWITCH_API ACellSlot : public ATimelineBaseActor
+class CHRONOSWITCH_API ACellSlot : public AActor
 {
 	GENERATED_BODY()
 
@@ -32,8 +32,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxCollider;
 	
+	UPROPERTY(ReplicatedUsing=OnRep_PhysicsActor)
+	AFuturePhysicsTimelineActor* PhysicsActor;
+	
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Components")
 	void MoveActorInPlace(AFuturePhysicsTimelineActor* MovingActor);
+	
+	UFUNCTION()
+	void OnRep_PhysicsActor();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 private:
 	UFUNCTION()

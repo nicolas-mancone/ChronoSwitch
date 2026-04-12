@@ -4,53 +4,48 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Interfaces/Interactable.h"
+#include "Interfaces/Actionable.h"
 #include "Net/UnrealNetwork.h"
-#include "DoorLever.generated.h"
+#include "ActionableDoor.generated.h"
 
 class UStaticMeshComponent;
-class USceneComponent;
-class ASlidingDoor;
+class UDoorComponent;
 
 UCLASS()
-class CHRONOSWITCH_API ADoorLever : public AActor, public IInteractable
+class CHRONOSWITCH_API AActionableDoor : public AActor, public IActionable
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this actor's properties
-	ADoorLever();
-	
+	AActionableDoor();
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<ASlidingDoor> Door;
 	
-	virtual void Interact_Implementation(ACharacter* Interactor) override;
-	virtual FText GetInteractPrompt_Implementation() override;
-
+	virtual void Activate_Implementation() override;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void OpenDoor();
+	UFUNCTION(BlueprintImplementableEvent)
+	void CloseDoor();
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_bIsPulled)
-	bool bIsPulled = false;
+	UPROPERTY(ReplicatedUsing=OnRep_bIsOpen)
+	bool bIsOpen = false;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	UStaticMeshComponent* BaseMesh;
+	UStaticMeshComponent* DoorMesh;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	USceneComponent* LeverPivot;
+	UStaticMeshComponent* DoorFrameMesh;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	UStaticMeshComponent* LeverMesh;
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	void PullLeverUp();
-	UFUNCTION(BlueprintImplementableEvent)
-	void PullLeverDown();
+	UDoorComponent* DoorComponent;
 	
 	UFUNCTION()
-	void OnRep_bIsPulled();
+	void OnRep_bIsOpen();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
