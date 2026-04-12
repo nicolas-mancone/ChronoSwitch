@@ -95,6 +95,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
 	TObjectPtr<UInputAction> SprintAction;
 	
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	float LookPitchMin = -55.0f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = Input)
+	float LookPitchMax = 80.0f;
+	
 	/** Handles movement input. */
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
@@ -121,7 +127,16 @@ protected:
 	UFUNCTION()
 	void Interact();
 	
-	/** Called from the Input Action. This is intended to be implemented in Blueprint to start an animation sequence. */
+	UFUNCTION()
+	void OnTimeSwitch();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_OnTimeSwitch();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_OnTimeSwitch();
+	
+	/** This is intended to be implemented in Blueprint to start an animation sequence. */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Timeline")
 	void OnTimeSwitchPressed();
 #pragma endregion
