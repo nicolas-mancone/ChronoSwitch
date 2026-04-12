@@ -16,6 +16,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Gameplay/TimelineActors/TimelineBaseActor.h"
 #include "Gameplay/TimelineActors/PhysicsTimelineActor.h"
+#include "Camera/PlayerCameraManager.h"
 #include "UI/InteractPromptWidget.h"
 
 #pragma region Lifecycle
@@ -139,6 +140,15 @@ void AChronoSwitchCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 void AChronoSwitchCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (PC->PlayerCameraManager)
+		{
+			PC->PlayerCameraManager->ViewPitchMin = LookPitchMin;
+			PC->PlayerCameraManager->ViewPitchMax = LookPitchMax;  
+		}
+	}
 
 	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
@@ -166,7 +176,7 @@ void AChronoSwitchCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 		
 		if (TimeSwitchAction)
 		{
-			EnhancedInput->BindAction(TimeSwitchAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::OnTimeSwitchPressed);
+			EnhancedInput->BindAction(TimeSwitchAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::OnTimeSwitch);
 		}
 
 		if (SprintAction)
@@ -229,6 +239,26 @@ void AChronoSwitchCharacter::StopSprinting()
 	TargetWalkSpeed = WalkSpeed;
 	Server_SetMaxWalkSpeed(WalkSpeed);
 }
+
+void AChronoSwitchCharacter::OnTimeSwitch()
+{
+	if (IsLocallyControlled())
+	{
+		Server_OnTimeSwitch();
+	}
+}
+
+void AChronoSwitchCharacter::Server_OnTimeSwitch_Implementation()
+{
+	Multicast_OnTimeSwitch();
+}
+
+void AChronoSwitchCharacter::Multicast_OnTimeSwitch_Implementation()
+{
+	OnTimeSwitchPressed();
+}
+
+
 
 /** Handles the interact action, performing a trace to find an interactable object. */
 void AChronoSwitchCharacter::Interact()
@@ -701,6 +731,11 @@ bool AChronoSwitchCharacter::BoxTraceFront(FHitResult& OutHit, const float DrawD
 
 void AChronoSwitchCharacter::ExecuteTimeSwitchLogic()
 {
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
 	AChronoSwitchPlayerState* MyPS = GetPlayerState<AChronoSwitchPlayerState>();
 	AChronoSwitchGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AChronoSwitchGameState>() : nullptr;
 
