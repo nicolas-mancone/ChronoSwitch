@@ -23,7 +23,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	virtual void Activate_Implementation() override;
+	virtual void Activate_Implementation(AActor* ActorParam) override;
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void OpenDoor();

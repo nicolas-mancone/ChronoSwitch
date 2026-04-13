@@ -5,6 +5,7 @@
 
 #include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "Interfaces/Actionable.h"
 
 
 // Sets default values
@@ -34,23 +35,35 @@ void ACellSlot::BeginPlay()
 void ACellSlot::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("All - OnBeginOverlap"));
 	if (!HasAuthority())
 		return;
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Server - OnBeginOverlap"));
 	PhysicsActor = Cast<AFuturePhysicsTimelineActor>(OtherActor);
 	OnRep_PhysicsActor();
 }
 
 void ACellSlot::OnRep_PhysicsActor()
 {
+	HandlePhysicsActorChange();
+}
+
+void ACellSlot::HandlePhysicsActorChange()
+{
 	if (PhysicsActor)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("OnRep logic"));
 		PhysicsActor->DetachFromCharacter();
 		PhysicsActor->SetActorEnableCollision(false);
 		PhysicsActor->DisableComponentsSimulatePhysics();
-		MoveActorInPlace(PhysicsActor);	
+		MoveActorInPlace(PhysicsActor);
+	}
+}
+
+void ACellSlot::ActivateObject()
+{
+	if (!HasAuthority())
+		return;
+	if (ActionableActor->GetClass()->ImplementsInterface(UActionable::StaticClass()))
+	{
+		IActionable::Execute_Activate(ActionableActor, PhysicsActor);
 	}
 }
 

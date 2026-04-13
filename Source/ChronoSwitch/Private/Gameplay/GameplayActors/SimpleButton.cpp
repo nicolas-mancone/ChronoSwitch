@@ -40,7 +40,8 @@ void ASimpleButton::Interact_Implementation(ACharacter* Interactor)
 	
 	if (ActionableActor->GetClass()->ImplementsInterface(UActionable::StaticClass()))
 	{
-		IActionable::Execute_Activate(ActionableActor);
+		IActionable::Execute_Activate(ActionableActor, this);
+		// PressButton() is not called on client right now.
 		PressButton();
 	}
 }

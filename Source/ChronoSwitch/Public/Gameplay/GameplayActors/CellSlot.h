@@ -32,6 +32,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxCollider;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<AActor> ActionableActor;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_PhysicsActor)
 	AFuturePhysicsTimelineActor* PhysicsActor;
 	
@@ -40,6 +43,12 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_PhysicsActor();
+	
+	UFUNCTION()
+	virtual void HandlePhysicsActorChange();
+	
+	UFUNCTION(BlueprintCallable, Category = "Components")
+	virtual void ActivateObject();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	

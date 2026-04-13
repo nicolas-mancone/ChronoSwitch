@@ -37,7 +37,7 @@ void AActionableDoor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AActionableDoor::Activate_Implementation()
+void AActionableDoor::Activate_Implementation(AActor* ActorParam)
 {
 	if (!HasAuthority())
 		return;
