@@ -29,6 +29,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	
+	UPROPERTY(Replicated)
+	bool bUsed = false;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> BoxCollider;
 	

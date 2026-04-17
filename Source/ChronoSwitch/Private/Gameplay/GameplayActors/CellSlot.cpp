@@ -35,6 +35,8 @@ void ACellSlot::BeginPlay()
 void ACellSlot::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (bUsed)
+		return;
 	if (!HasAuthority())
 		return;
 	PhysicsActor = Cast<AFuturePhysicsTimelineActor>(OtherActor);
@@ -53,6 +55,7 @@ void ACellSlot::HandlePhysicsActorChange()
 		PhysicsActor->DetachFromCharacter();
 		PhysicsActor->SetActorEnableCollision(false);
 		PhysicsActor->DisableComponentsSimulatePhysics();
+		bUsed = true;
 		MoveActorInPlace(PhysicsActor);
 	}
 }
@@ -72,6 +75,7 @@ void ACellSlot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ACellSlot, PhysicsActor);
+	DOREPLIFETIME(ACellSlot, bUsed);
 }
 
 // Called every frame
