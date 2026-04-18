@@ -58,6 +58,9 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Game Rules")
 	void SetGlobalTimeline(uint8 TargetID);
 	
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Game Rules")
+	void SetGlobalSwitch(bool bNewState);
+	
 	/** Forces all players to set their visor state to a specific value. */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Game Rules")
 	void SetGlobalVisorState(bool bNewState);

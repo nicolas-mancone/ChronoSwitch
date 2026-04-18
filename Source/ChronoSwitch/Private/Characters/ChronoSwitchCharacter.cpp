@@ -1017,6 +1017,20 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 		const bool bShouldOtherBeVisibleAsGhost = !bAreInSameTimeline && bIsVisorActive;
 		const bool bShouldOtherBeVisible = bAreInSameTimeline || bShouldOtherBeVisibleAsGhost;
 		
+		// Gestione Overlay Material: lo impostiamo se siamo in timeline diverse E non siamo del tutto invisibili (Ghost mode attiva).
+		// Quando CurrentVisibilityBlend >= 0.5 (metà della transizione FullVanish), l'overlay viene rimosso.
+		const bool bShouldShowGhostOverlay = !bAreInSameTimeline && CurrentVisibilityBlend < 0.5f;
+		if (bShouldShowGhostOverlay)
+		{
+			if (OtherPlayerMesh->GetOverlayMaterial() != GhostOverlayMaterial)
+				OtherPlayerMesh->SetOverlayMaterial(GhostOverlayMaterial);
+		}
+		else
+		{
+			if (OtherPlayerMesh->GetOverlayMaterial() != nullptr)
+				OtherPlayerMesh->SetOverlayMaterial(nullptr);
+		}
+
 		// Update Material Parameters: 1.0 if in same timeline, 0.0 if different.
 		// We update all slots on the mesh. Ensure your materials have Scalar Parameters named "MaterialState" and "FullVanish".
 		const int32 NumMaterials = OtherPlayerMesh->GetNumMaterials();
@@ -1045,9 +1059,24 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 				if (!FMath::IsNearlyEqual(CurrentTimelineBlend, TargetBlend, 0.001f))
 				{
 					CurrentTimelineBlend = FMath::FInterpTo(CurrentTimelineBlend, TargetBlend, DeltaTime, 4.0f);
-					for (UMaterialInstanceDynamic* MID : CachedBodyMIDs)
+					for (int32 i = 0; i < CachedBodyMIDs.Num(); ++i)
 					{
-						if (MID) MID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+						UMaterialInstanceDynamic* MID = CachedBodyMIDs[i];
+						if (!MID) continue;
+
+						MID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
+
+						// Calcolo base: l'intensità emissiva è l'inverso del MaterialState (1 quando MS è 0, 0 quando MS è 1)
+						float EmissiveValue = 1.0f - CurrentTimelineBlend;
+
+						// Eccezione: Modifica l'indice (es. 0) per indicare quale dei 4 materiali deve restare sempre acceso (Emissive = 1)
+						// Se non conosci l'indice, puoi verificarlo nell'editor (Slot 0, 1, 2, 3)
+						if (i == 3) 
+						{
+							EmissiveValue = 1.0f;
+						}
+
+						MID->SetScalarParameterValue(FName("Emissive Intensity"), EmissiveValue);
 					}
 				}
 
@@ -1062,7 +1091,14 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 					}
 
 					// Completely hide the mesh only when fully dissolved (>= 0.99) to save rendering cost.
-					OtherPlayerMesh->SetHiddenInGame(CurrentVisibilityBlend >= 0.99f);
+					const bool bIsFullyInvisible = CurrentVisibilityBlend >= 0.99f;
+					OtherPlayerMesh->SetHiddenInGame(bIsFullyInvisible);
+
+					// Rimuoviamo l'overlay se il blend raggiunge la metà della transizione (o la soglia impostata)
+					if (CurrentVisibilityBlend >= 0.5f && OtherPlayerMesh->GetOverlayMaterial() != nullptr)
+					{
+						OtherPlayerMesh->SetOverlayMaterial(nullptr);
+					}
 				}
 			}
 		}

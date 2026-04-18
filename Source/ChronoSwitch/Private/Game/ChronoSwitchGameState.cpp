@@ -108,6 +108,18 @@ void AChronoSwitchGameState::SetGlobalTimeline(uint8 TargetID)
 	}
 }
 
+void AChronoSwitchGameState::SetGlobalSwitch(bool bNewState)
+{
+	// Iterates through all connected players and forces them to a specific switchmode.
+	for (APlayerState* PS : PlayerArray)
+	{
+		if (AChronoSwitchPlayerState* ChronoPS = Cast<AChronoSwitchPlayerState>(PS))
+		{
+			ChronoPS->SetCanSwitchTimeline(bNewState);
+		}
+	}
+}
+
 bool AChronoSwitchGameState::AreBothPlayersInTimeline(uint8 TimelineID) const
 {
 	// Iterates through all connected players to check their timeline.

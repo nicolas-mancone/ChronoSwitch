@@ -209,9 +209,14 @@ void ACausalActor::NotifyOnGrabbed(UPrimitiveComponent* Mesh, ACharacter* Grabbe
 
 		if (FutureMesh && !FutureInteractingCharacter)
 		{
-			FutureMesh->SetSimulatePhysics(false);
-			FutureMesh->SetEnableGravity(false);
-			FutureMeshVelocity = FVector::ZeroVector;
+			// Se la FutureMesh è già vicina alla PastMesh, la rendiamo subito cinematica.
+			// Altrimenti, lasciamo la fisica attiva per permettere il "viaggio" tramite molla.
+			const float DistSq = FVector::DistSquared(PastMesh->GetComponentLocation(), FutureMesh->GetComponentLocation());
+			const bool bAlreadyClose = DistSq < FMath::Square(20.0f); // Soglia aumentata a 20cm
+
+			FutureMesh->SetSimulatePhysics(!bAlreadyClose);
+			FutureMesh->SetEnableGravity(!bAlreadyClose);
+			if (bAlreadyClose) FutureMeshVelocity = FVector::ZeroVector;
 		}
 	}
 }
@@ -235,9 +240,14 @@ void ACausalActor::NotifyOnReleased(UPrimitiveComponent* Mesh, ACharacter* Grabb
 	{
 		if (InteractedComponent == PastMesh)
 		{
-			FutureMesh->SetSimulatePhysics(false);
-			FutureMesh->SetEnableGravity(false);
-			FutureMeshVelocity = FVector::ZeroVector;
+			// Quando rilasciamo la FutureMesh (o la PastMesh), se l'altra è ancora tenuta,
+			// controlliamo se sono vicine. Se sono lontane, attiviamo la fisica per il viaggio.
+			const float DistSq = FVector::DistSquared(PastMesh->GetComponentLocation(), FutureMesh->GetComponentLocation());
+			const bool bAlreadyClose = DistSq < FMath::Square(20.0f);
+
+			FutureMesh->SetSimulatePhysics(!bAlreadyClose);
+			FutureMesh->SetEnableGravity(!bAlreadyClose);
+			if (bAlreadyClose) FutureMeshVelocity = FVector::ZeroVector;
 		}
 		else
 		{
@@ -263,7 +273,23 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 	const FVector TargetLocation = PastMesh->GetComponentLocation();
 	const FRotator TargetRotation = PastMesh->GetComponentRotation();
 
-	if (InteractedComponent == PastMesh)
+	// 1. Gestione dello "Snap": se l'oggetto è afferrato nel passato ma la FutureMesh sta ancora viaggiando (fisica),
+	// controlliamo se è arrivata a destinazione per bloccarla in modalità cinematica.
+	if (InteractedComponent == PastMesh && FutureMesh->IsSimulatingPhysics())
+	{
+		const float DistSq = FVector::DistSquared(TargetLocation, FutureMesh->GetComponentLocation());
+		if (DistSq < FMath::Square(20.0f)) // Soglia aumentata a 20cm
+		{
+			FutureMesh->SetSimulatePhysics(false);
+			FutureMesh->SetEnableGravity(false);
+			FutureMeshVelocity = FVector::ZeroVector;
+			// Usciamo per processare la logica cinematica nel prossimo frame per stabilità.
+			return;
+		}
+	}
+
+	// 2. Logica Cinematica: usata solo quando l'oggetto è afferrato E la FutureMesh ha raggiunto la destinazione.
+	if (InteractedComponent == PastMesh && !FutureMesh->IsSimulatingPhysics())
 	{
 		const FVector CurrentLoc = FutureMesh->GetComponentLocation();
 		const FVector MoveDelta = TargetLocation - CurrentLoc;
@@ -305,7 +331,8 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 		
 		FutureMesh->ClearMoveIgnoreActors();
 	}
-	else if (InteractedComponent == nullptr && FutureMesh)
+	// 3. Logica Fisica (Molla): usata sempre se la FutureMesh sta simulando la fisica.
+	else if (FutureMesh && FutureMesh->IsSimulatingPhysics())
 	{
 		if (FBodyInstance* BodyInst = FutureMesh->GetBodyInstance())
 		{

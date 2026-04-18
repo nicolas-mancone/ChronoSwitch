@@ -64,6 +64,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PostProcess")
 	UMaterialInterface* PostProcessBaseMaterial;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "PostProcess")
+	UMaterialInterface* GhostOverlayMaterial;
+
 	UPROPERTY(BlueprintReadOnly, Category = "PostProcess")
 	UMaterialInstanceDynamic* PostProcessDynamicMaterial;
 #pragma endregion
