@@ -25,6 +25,7 @@ public:
 	UChronoSwitchGameInstance();
 	
 	virtual void Init() override;
+	virtual void Shutdown() override;
 	
 	UFUNCTION(BlueprintCallable)
 	void HostSession(int32 MaxPlayers = 2);
@@ -45,6 +46,8 @@ public:
 	
 protected:
 	
+	IOnlineSessionPtr GetSessionInterface() const;
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
@@ -55,6 +58,7 @@ protected:
 	
 private:
 	// Session Interface Handles
+	FDelegateHandle DestroySessionCompleteDelegateHandle;
 	FDelegateHandle CreateSessionCompleteDelegateHandle;
 	FDelegateHandle FindSessionsCompleteDelegateHandle;
 	FDelegateHandle JoinSessionCompleteDelegateHandle;

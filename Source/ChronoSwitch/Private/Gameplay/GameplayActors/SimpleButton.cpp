@@ -18,7 +18,7 @@ ASimpleButton::ASimpleButton()
 	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>("BaseMesh");
 	BaseMesh->SetupAttachment(SceneRoot);
 	
-	SetReplicates(true);
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
