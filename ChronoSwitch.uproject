@@ -30,5 +30,8 @@
 			"Name": "MovieRenderPipeline",
 			"Enabled": true
 		}
+	],
+	"TargetPlatforms": [
+		"Windows"
 	]
 }
