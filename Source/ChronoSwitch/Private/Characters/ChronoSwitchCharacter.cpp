@@ -511,119 +511,126 @@ void AChronoSwitchCharacter::OnRep_GrabbedComponent(UPrimitiveComponent* OldComp
 void AChronoSwitchCharacter::UpdateHeldObjectTransform(float DeltaTime)
 {
 	// Kinematic update for held object. Runs on Simulated Proxies too for visual smoothness.
-	if (GrabbedComponent)
+	if (!IsValid(GrabbedComponent) || !GrabbedComponent->IsRegistered())
 	{
-		// Capture previous position to calculate velocity.
-		const FVector OldPos = HeldObjectPos;
-		
-		FVector CameraLoc;
-		FRotator CameraRot;
+		return;
+	}
 
-		// Explicitly calculate view point for Simulated Proxies to use replicated data.
-		if (IsLocallyControlled() || HasAuthority())
+	// Capture a stable pointer up front in case replication changes state later in the tick.
+	UPrimitiveComponent* HeldComponent = GrabbedComponent;
+
+	// Capture previous position to calculate velocity.
+	const FVector OldPos = HeldObjectPos;
+	
+	FVector CameraLoc;
+	FRotator CameraRot;
+
+	// Explicitly calculate view point for Simulated Proxies to use replicated data.
+	if (IsLocallyControlled() || HasAuthority())
+	{
+		if (FirstPersonCameraComponent)
 		{
-			if (FirstPersonCameraComponent)
-			{
-				CameraLoc = FirstPersonCameraComponent->GetComponentLocation();
-				CameraRot = FirstPersonCameraComponent->GetComponentRotation();
-			}
-			else
-			{
-				GetActorEyesViewPoint(CameraLoc, CameraRot); 
-			}
+			CameraLoc = FirstPersonCameraComponent->GetComponentLocation();
+			CameraRot = FirstPersonCameraComponent->GetComponentRotation();
 		}
 		else
 		{
-			CameraLoc = GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
-			CameraRot = GetBaseAimRotation();
+			GetActorEyesViewPoint(CameraLoc, CameraRot); 
 		}
-		
-		// Predict character position at end of frame to reduce visual lag (PrePhysics tick).
-		CameraLoc += GetVelocity() * DeltaTime;
-		
-		const FVector IdealTargetLocation = CameraLoc + CameraRot.Vector() * HoldDistance;
-		
-		// Interpolate using local tracker to avoid fighting server replication.
-		const FVector CurrentLoc = HeldObjectPos;
-		const FVector TargetLocation = FMath::VInterpTo(CurrentLoc, IdealTargetLocation, DeltaTime, 20.0f);
-		
-		// Apply Yaw offset only to keep the object upright.
-		const FRotator TargetRotation = FRotator(0.0f, CameraRot.Yaw + GrabbedRelativeRotation.Yaw, 0.0f);
+	}
+	else
+	{
+		CameraLoc = GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
+		CameraRot = GetBaseAimRotation();
+	}
+	
+	// Predict character position at end of frame to reduce visual lag (PrePhysics tick).
+	CameraLoc += GetVelocity() * DeltaTime;
+	
+	const FVector IdealTargetLocation = CameraLoc + CameraRot.Vector() * HoldDistance;
+	
+	// Interpolate using local tracker to avoid fighting server replication.
+	const FVector CurrentLoc = HeldObjectPos;
+	const FVector TargetLocation = FMath::VInterpTo(CurrentLoc, IdealTargetLocation, DeltaTime, 20.0f);
+	
+	// Apply Yaw offset only to keep the object upright.
+	const FRotator TargetRotation = FRotator(0.0f, CameraRot.Yaw + GrabbedRelativeRotation.Yaw, 0.0f);
 
-		// Calculate intended movement to check for lifting.
-		const FVector MoveDelta = TargetLocation - CurrentLoc;
-		const bool bIsLifting = MoveDelta.Z > 0.1f;
+	// Calculate intended movement to check for lifting.
+	const FVector MoveDelta = TargetLocation - CurrentLoc;
+	const bool bIsLifting = MoveDelta.Z > 0.1f;
 
-		// Allow lifting the other player by ignoring collision if they are standing on it.
-		if (CachedOtherPlayerCharacter.IsValid())
+	// Allow lifting the other player by ignoring collision if they are standing on it.
+	if (HeldComponent && CachedOtherPlayerCharacter.IsValid())
+	{
+		ACharacter* OtherChar = CachedOtherPlayerCharacter.Get();
+		if (IsValid(OtherChar))
 		{
-			// Geometric Check: Ensure player is physically ABOVE the mesh.
-			const float CharBottomZ = CachedOtherPlayerCharacter->GetActorLocation().Z - CachedOtherPlayerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-			const FBoxSphereBounds MeshBounds = GrabbedComponent->CalcBounds(GrabbedComponent->GetComponentTransform());
-			const float MeshTopZ = MeshBounds.Origin.Z + MeshBounds.BoxExtent.Z;
+			if (UCapsuleComponent* OtherCapsule = OtherChar->GetCapsuleComponent())
+			{
+				// Geometric Check: Ensure player is physically ABOVE the mesh.
+				const float CharBottomZ = OtherChar->GetActorLocation().Z - OtherCapsule->GetScaledCapsuleHalfHeight();
+				const FBoxSphereBounds MeshBounds = HeldComponent->CalcBounds(HeldComponent->GetComponentTransform());
+				const float MeshTopZ = MeshBounds.Origin.Z + MeshBounds.BoxExtent.Z;
 			
-			const bool bIsPhysicallyAbove = CharBottomZ >= (MeshTopZ - 15.0f);
+				const bool bIsPhysicallyAbove = CharBottomZ >= (MeshTopZ - 15.0f);
 			
-			// Only ignore collision if:
-			// 1. Engine says they are on it (GetMovementBase)
-			// 2. We are moving UP (bIsLifting)
-			// 3. They are geometrically on top (bIsPhysicallyAbove)
-			const bool bShouldIgnore = (CachedOtherPlayerCharacter->GetMovementBase() == GrabbedComponent) && bIsLifting && bIsPhysicallyAbove;
+				// Only ignore collision if:
+				// 1. Engine says they are on it (GetMovementBase)
+				// 2. We are moving UP (bIsLifting)
+				// 3. They are geometrically on top (bIsPhysicallyAbove)
+				const bool bShouldIgnore = (OtherChar->GetMovementBase() == HeldComponent) && bIsLifting && bIsPhysicallyAbove;
 
-			GrabbedComponent->IgnoreActorWhenMoving(CachedOtherPlayerCharacter.Get(), bShouldIgnore);
+				HeldComponent->IgnoreActorWhenMoving(OtherChar, bShouldIgnore);
+			}
 		}
+	}
 
-		// Perform kinematic move with sweep to stop at obstacles.
-		FHitResult Hit;
-		GrabbedComponent->SetWorldLocationAndRotation(TargetLocation, TargetRotation, true, &Hit);
+	// Perform kinematic move with sweep to stop at obstacles.
+	FHitResult Hit;
+	HeldComponent->SetWorldLocationAndRotation(TargetLocation, TargetRotation, true, &Hit);
 
-		// Handle sliding along walls/floors.
-		if (Hit.bBlockingHit)
+	// Handle sliding along walls/floors.
+	if (Hit.bBlockingHit)
+	{
+		const FVector BlockedLoc = Hit.Location;
+		const FVector DesiredDelta = TargetLocation - BlockedLoc;
+
+		FVector SlideDelta = FVector::VectorPlaneProject(DesiredDelta, Hit.ImpactNormal);
+
+		// Apply friction if dragging on ground.
+		if (Hit.ImpactNormal.Z > 0.7f)
 		{
-			const FVector BlockedLoc = Hit.Location; // Use actual hit location
-			const FVector DesiredDelta = TargetLocation - BlockedLoc;
-
-			FVector SlideDelta = FVector::VectorPlaneProject(DesiredDelta, Hit.ImpactNormal);
-
-			// Apply friction if dragging on ground.
-			if (Hit.ImpactNormal.Z > 0.7f)
-			{
-				// Simple friction: Scale down the movement to simulate drag.
-				// Lower value = More Friction / Heavier object.
-				// 0.2f feels like dragging a heavy box.
-				SlideDelta *= 0.2f;
-			}
-
-			if (!SlideDelta.IsNearlyZero(0.01f))
-			{
-				// Nudge slightly off the surface (0.5 units) to prevent catching on floor seams/geometry edges.
-				const FVector Nudge = Hit.ImpactNormal * 0.5f;
-				
-				GrabbedComponent->SetWorldLocationAndRotation(BlockedLoc + Nudge + SlideDelta, TargetRotation, true, &Hit);
-				HeldObjectPos = GrabbedComponent->GetComponentLocation();
-			}
-			else
-			{
-				HeldObjectPos = BlockedLoc;
-			}
+			SlideDelta *= 0.2f;
+		}
+	
+		if (!SlideDelta.IsNearlyZero(0.01f))
+		{
+			const FVector Nudge = Hit.ImpactNormal * 0.5f;
+			HeldComponent->SetWorldLocationAndRotation(BlockedLoc + Nudge + SlideDelta, TargetRotation, true, &Hit);
+			HeldObjectPos = HeldComponent->GetComponentLocation();
 		}
 		else
 		{
-			HeldObjectPos = TargetLocation;
+			HeldObjectPos = BlockedLoc;
 		}
+	}
+	else
+	{
+		HeldObjectPos = TargetLocation;
+	}
 
-		// Calculate velocity for momentum preservation on release.
-		if (DeltaTime > KINDA_SMALL_NUMBER)
-		{
-			HeldObjectVelocity = (HeldObjectPos - OldPos) / DeltaTime;
-		}
+	// Calculate velocity for momentum preservation on release.
+	if (DeltaTime > KINDA_SMALL_NUMBER)
+	{
+		HeldObjectVelocity = (HeldObjectPos - OldPos) / DeltaTime;
+	}
 
-		if (IsLocallyControlled() || HasAuthority())
+	if (IsLocallyControlled() || HasAuthority())
+	{
+		if (FVector::Dist(CameraLoc, HeldObjectPos) > MaxHoldDistance)
 		{
-			if (FVector::Dist(CameraLoc, HeldObjectPos) > MaxHoldDistance)
-			{
-				Release();
-			}
+			Release();
 		}
 	}
 }
@@ -1017,8 +1024,8 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 		const bool bShouldOtherBeVisibleAsGhost = !bAreInSameTimeline && bIsVisorActive;
 		const bool bShouldOtherBeVisible = bAreInSameTimeline || bShouldOtherBeVisibleAsGhost;
 		
-		// Gestione Overlay Material: lo impostiamo se siamo in timeline diverse E non siamo del tutto invisibili (Ghost mode attiva).
-		// Quando CurrentVisibilityBlend >= 0.5 (metà della transizione FullVanish), l'overlay viene rimosso.
+		// Manage Overlay Material: apply if in different timelines and not yet fully invisible.
+		// The overlay is removed once CurrentVisibilityBlend reaches the 0.5 threshold.
 		const bool bShouldShowGhostOverlay = !bAreInSameTimeline && CurrentVisibilityBlend < 0.5f;
 		if (bShouldShowGhostOverlay)
 		{
@@ -1066,11 +1073,11 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 
 						MID->SetScalarParameterValue(FName("MaterialState"), CurrentTimelineBlend);
 
-						// Calcolo base: l'intensità emissiva è l'inverso del MaterialState (1 quando MS è 0, 0 quando MS è 1)
+						// Base calculation: emissive intensity is the inverse of MaterialState.
 						float EmissiveValue = 1.0f - CurrentTimelineBlend;
 
-						// Eccezione: Modifica l'indice (es. 0) per indicare quale dei 4 materiali deve restare sempre acceso (Emissive = 1)
-						// Se non conosci l'indice, puoi verificarlo nell'editor (Slot 0, 1, 2, 3)
+						// Exception: specified material index remains fully emissive.
+						// Check material slot indices (0, 1, 2, 3) in the editor if needed.
 						if (i == 3) 
 						{
 							EmissiveValue = 1.0f;
@@ -1094,7 +1101,7 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 					const bool bIsFullyInvisible = CurrentVisibilityBlend >= 0.99f;
 					OtherPlayerMesh->SetHiddenInGame(bIsFullyInvisible);
 
-					// Rimuoviamo l'overlay se il blend raggiunge la metà della transizione (o la soglia impostata)
+					// Remove overlay when the blend reaches the halfway point of the transition.
 					if (CurrentVisibilityBlend >= 0.5f && OtherPlayerMesh->GetOverlayMaterial() != nullptr)
 					{
 						OtherPlayerMesh->SetOverlayMaterial(nullptr);

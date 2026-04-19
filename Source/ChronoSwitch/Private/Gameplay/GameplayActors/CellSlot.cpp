@@ -64,9 +64,12 @@ void ACellSlot::ActivateObject()
 {
 	if (!HasAuthority())
 		return;
-	if (ActionableActor->GetClass()->ImplementsInterface(UActionable::StaticClass()))
+	for (AActor* Actor : ActionableActors)
 	{
-		IActionable::Execute_Activate(ActionableActor, PhysicsActor);
+		if (Actor && Actor->GetClass()->ImplementsInterface(UActionable::StaticClass()))
+		{
+			IActionable::Execute_Activate(Actor, PhysicsActor);
+		}
 	}
 }
 

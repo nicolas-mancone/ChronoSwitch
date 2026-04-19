@@ -209,10 +209,10 @@ void ACausalActor::NotifyOnGrabbed(UPrimitiveComponent* Mesh, ACharacter* Grabbe
 
 		if (FutureMesh && !FutureInteractingCharacter)
 		{
-			// Se la FutureMesh è già vicina alla PastMesh, la rendiamo subito cinematica.
-			// Altrimenti, lasciamo la fisica attiva per permettere il "viaggio" tramite molla.
+			// If FutureMesh is already near PastMesh, set to kinematic immediately.
+			// Otherwise, keep physics enabled to allow spring-based travel.
 			const float DistSq = FVector::DistSquared(PastMesh->GetComponentLocation(), FutureMesh->GetComponentLocation());
-			const bool bAlreadyClose = DistSq < FMath::Square(20.0f); // Soglia aumentata a 20cm
+			const bool bAlreadyClose = DistSq < FMath::Square(20.0f); // 20cm threshold
 
 			FutureMesh->SetSimulatePhysics(!bAlreadyClose);
 			FutureMesh->SetEnableGravity(!bAlreadyClose);
@@ -240,8 +240,8 @@ void ACausalActor::NotifyOnReleased(UPrimitiveComponent* Mesh, ACharacter* Grabb
 	{
 		if (InteractedComponent == PastMesh)
 		{
-			// Quando rilasciamo la FutureMesh (o la PastMesh), se l'altra è ancora tenuta,
-			// controlliamo se sono vicine. Se sono lontane, attiviamo la fisica per il viaggio.
+			// On release, if the other mesh is still held, check proximity. 
+			// Enable physics for travel if the distance is significant.
 			const float DistSq = FVector::DistSquared(PastMesh->GetComponentLocation(), FutureMesh->GetComponentLocation());
 			const bool bAlreadyClose = DistSq < FMath::Square(20.0f);
 
@@ -273,17 +273,17 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 	const FVector TargetLocation = PastMesh->GetComponentLocation();
 	const FRotator TargetRotation = PastMesh->GetComponentRotation();
 
-	// 1. Gestione dello "Snap": se l'oggetto è afferrato nel passato ma la FutureMesh sta ancora viaggiando (fisica),
-	// controlliamo se è arrivata a destinazione per bloccarla in modalità cinematica.
+	// 1. Snap Logic: if held in the past but FutureMesh is still traveling via physics, 
+	// check if it reached the target to switch to kinematic mode.
 	if (InteractedComponent == PastMesh && FutureMesh->IsSimulatingPhysics())
 	{
 		const float DistSq = FVector::DistSquared(TargetLocation, FutureMesh->GetComponentLocation());
-		if (DistSq < FMath::Square(20.0f)) // Soglia aumentata a 20cm
+		if (DistSq < FMath::Square(20.0f)) // 20cm threshold
 		{
 			FutureMesh->SetSimulatePhysics(false);
 			FutureMesh->SetEnableGravity(false);
 			FutureMeshVelocity = FVector::ZeroVector;
-			// Usciamo per processare la logica cinematica nel prossimo frame per stabilità.
+			// Return to process kinematic logic in the next frame for stability.
 			return;
 		}
 	}
@@ -331,7 +331,7 @@ void ACausalActor::UpdateSlaveMesh(float DeltaTime)
 		
 		FutureMesh->ClearMoveIgnoreActors();
 	}
-	// 3. Logica Fisica (Molla): usata sempre se la FutureMesh sta simulando la fisica.
+	// 3. Physics Logic (Spring): used whenever FutureMesh is simulating physics.
 	else if (FutureMesh && FutureMesh->IsSimulatingPhysics())
 	{
 		if (FBodyInstance* BodyInst = FutureMesh->GetBodyInstance())

@@ -36,7 +36,7 @@ protected:
 	TObjectPtr<UBoxComponent> BoxCollider;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<AActor> ActionableActor;
+	TArray<TObjectPtr<AActor>> ActionableActors;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_PhysicsActor)
 	AFuturePhysicsTimelineActor* PhysicsActor;
