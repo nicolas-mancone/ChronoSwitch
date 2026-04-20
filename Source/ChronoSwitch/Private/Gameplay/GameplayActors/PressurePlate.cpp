@@ -33,7 +33,6 @@ void APressurePlate::BeginPlay()
 	
 	if (BoxCollider)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Collision Setup"));
 		BoxCollider->OnComponentBeginOverlap.AddDynamic(this, &APressurePlate::OnBeginOverlap);
 		BoxCollider->OnComponentEndOverlap.AddDynamic(this, &APressurePlate::OnEndOverlap);
 	}
