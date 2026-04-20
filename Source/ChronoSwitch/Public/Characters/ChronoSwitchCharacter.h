@@ -15,6 +15,8 @@ class UInputMappingContext;
 class UInputAction;
 class UInteractPromptWidget;
 class AChronoSwitchPlayerState;
+class USkeletalMesh;
+class UAnimInstance;
 
 UCLASS()
 class CHRONOSWITCH_API AChronoSwitchCharacter : public ACharacter, public ICanForceRelease
@@ -69,6 +71,39 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "PostProcess")
 	UMaterialInstanceDynamic* PostProcessDynamicMaterial;
+#pragma endregion
+
+#pragma region Character Appearance
+	/** True if this character is Player 1. Replicated so all clients can apply the correct visuals. */
+	UPROPERTY(ReplicatedUsing = OnRep_IsPlayer1, BlueprintReadOnly, Category = "Appearance")
+	bool bIsPlayer1 = false;
+
+	/** Mesh used for Player 1. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Appearance")
+	TObjectPtr<USkeletalMesh> Player1SkeletalMesh;
+
+	/** AnimBP used for Player 1. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Appearance")
+	TSubclassOf<UAnimInstance> Player1AnimClass;
+
+	/** Mesh used for Player 2. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Appearance")
+	TObjectPtr<USkeletalMesh> Player2SkeletalMesh;
+
+	/** AnimBP used for Player 2. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Appearance")
+	TSubclassOf<UAnimInstance> Player2AnimClass;
+
+	/** Applies the correct mesh + anim instance based on bIsPlayer1. */
+	UFUNCTION()
+	void ApplyCharacterAppearance();
+
+	/** RepNotify for bIsPlayer1. */
+	UFUNCTION()
+	void OnRep_IsPlayer1();
+
+	/** Updates emissive behavior for the character's own materials. */
+	void ApplyCharacterEmissive();
 #pragma endregion
 
 #pragma region UI

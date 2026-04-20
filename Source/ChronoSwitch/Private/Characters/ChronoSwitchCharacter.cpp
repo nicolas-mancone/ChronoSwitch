@@ -62,6 +62,20 @@ void AChronoSwitchCharacter::BeginPlay()
 	// Attempt to bind to this character's PlayerState to react to timeline changes.
 	// This will retry if the PlayerState is not immediately available.
 	BindToPlayerState();	
+	
+	// Assign Player 1 / Player 2 on the server once the character is initialized.
+	if (HasAuthority())
+	{
+		if (AGameStateBase* GS = GetWorld() ? GetWorld()->GetGameState() : nullptr)
+		{
+			const int32 PlayerIndex = GS->PlayerArray.Find(GetPlayerState());
+			bIsPlayer1 = (PlayerIndex == 0);
+		}
+		
+		ForceNetUpdate();
+	}
+
+	ApplyCharacterAppearance();
 
 	// Start a timer to find and cache the other player.
 	GetWorldTimerManager().SetTimer(PlayerCachingTimer, this, &AChronoSwitchCharacter::TryCachePlayers, 0.5f, true);
@@ -131,6 +145,77 @@ void AChronoSwitchCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(AChronoSwitchCharacter, GrabbedComponent);
 	DOREPLIFETIME(AChronoSwitchCharacter, GrabbedMeshOriginalCollision);
 	DOREPLIFETIME(AChronoSwitchCharacter, GrabbedRelativeRotation);
+	DOREPLIFETIME(AChronoSwitchCharacter, bIsPlayer1);
+}
+
+void AChronoSwitchCharacter::OnRep_IsPlayer1()
+{
+	ApplyCharacterAppearance();
+}
+
+void AChronoSwitchCharacter::ApplyCharacterAppearance()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return;
+	}
+
+	if (bIsPlayer1)
+	{
+		if (Player1SkeletalMesh)
+		{
+			MeshComp->SetSkeletalMesh(Player1SkeletalMesh);
+		}
+
+		if (Player1AnimClass)
+		{
+			MeshComp->SetAnimInstanceClass(Player1AnimClass);
+		}
+	}
+	else
+	{
+		if (Player2SkeletalMesh)
+		{
+			MeshComp->SetSkeletalMesh(Player2SkeletalMesh);
+		}
+
+		if (Player2AnimClass)
+		{
+			MeshComp->SetAnimInstanceClass(Player2AnimClass);
+		}
+	}
+
+	ApplyCharacterEmissive();
+}
+
+void AChronoSwitchCharacter::ApplyCharacterEmissive()
+{
+	USkeletalMeshComponent* MeshComp = GetMesh();
+	if (!MeshComp)
+	{
+		return;
+	}
+
+	const int32 EmissiveSlotIndex = bIsPlayer1 ? 3 : 1;
+
+	// Make sure the slot exists.
+	if (MeshComp->GetNumMaterials() <= EmissiveSlotIndex)
+	{
+		return;
+	}
+
+	// We only touch the specific material slot that must stay emissive.
+	UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(MeshComp->GetMaterial(EmissiveSlotIndex));
+	if (!MID)
+	{
+		MID = MeshComp->CreateAndSetMaterialInstanceDynamic(EmissiveSlotIndex);
+	}
+
+	if (MID)
+	{
+		MID->SetScalarParameterValue(FName("Emissive Intensity"), 1.0f);
+	}
 }
 
 #pragma endregion
@@ -1076,9 +1161,12 @@ void AChronoSwitchCharacter::UpdatePlayerVisibility(AChronoSwitchPlayerState* My
 						// Base calculation: emissive intensity is the inverse of MaterialState.
 						float EmissiveValue = 1.0f - CurrentTimelineBlend;
 
-						// Exception: specified material index remains fully emissive.
-						// Check material slot indices (0, 1, 2, 3) in the editor if needed.
-						if (i == 3) 
+						// Keep only the correct slot emissive, based on the OTHER character identity.
+						AChronoSwitchCharacter* OtherChronoChar = Cast<AChronoSwitchCharacter>(CachedOtherPlayerCharacter.Get());
+						const bool bOtherIsPlayer1 = OtherChronoChar ? OtherChronoChar->bIsPlayer1 : false;
+						const int32 EmissiveSlotIndex = bOtherIsPlayer1 ? 3 : 1;
+
+						if (i == EmissiveSlotIndex)
 						{
 							EmissiveValue = 1.0f;
 						}
