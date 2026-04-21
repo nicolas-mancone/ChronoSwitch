@@ -61,7 +61,7 @@ void AChronoSwitchCharacter::BeginPlay()
 
 	// Attempt to bind to this character's PlayerState to react to timeline changes.
 	// This will retry if the PlayerState is not immediately available.
-	BindToPlayerState();	
+	BindToPlayerState();
 	
 	// Assign Player 1 / Player 2 on the server once the character is initialized.
 	if (HasAuthority())
@@ -106,13 +106,16 @@ void AChronoSwitchCharacter::BeginPlay()
 	// UI is not managed by Server
 	if (IsLocallyControlled() && PlayerVisorWidgetClass)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Can Create Widget"));
 		// Create Widget from blueprint class
 		PlayerVisorWidget = CreateWidget<UPlayerVisorWidget>(GetWorld(), PlayerVisorWidgetClass);
 		
 		if (PlayerVisorWidget)
 		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Created Widget"));
 			PlayerVisorWidget->AddToViewport();
 			PlayerVisorWidget->SetVisibility(ESlateVisibility::Visible);
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Added to Viewport"));
 		}
 	}
 }
@@ -772,7 +775,7 @@ void AChronoSwitchCharacter::UpdateInteractWidget()
 {
 	if (!SensedActor && PlayerVisorWidget)
 	{
-		PlayerVisorWidget->SetVisibility(ESlateVisibility::Collapsed);
+		PlayerVisorWidget->SetPromptVisibility(ESlateVisibility::Hidden);
 		return;
 	}
 	// Only sets Visibility and Text if SensedActor is valid and has changed
