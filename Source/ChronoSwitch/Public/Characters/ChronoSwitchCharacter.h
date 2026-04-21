@@ -258,6 +258,9 @@ protected:
 	void Server_Interact(UObject* Object, ACharacter* Interactor);
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
+	void OnInteracted(bool bSucceded);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
 	void OnObjectGrabbed();
 
 	UPROPERTY(EditAnywhere, Category = "Interaction")

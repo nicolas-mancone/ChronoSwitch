@@ -418,7 +418,12 @@ void AChronoSwitchCharacter::Interact()
 	
 	if (SensedActor)
 	{
+		OnInteracted(true);
 		Server_Interact(SensedActor, this);
+	}
+	else
+	{
+		OnInteracted(false);
 	}
 	
 	// Priority 3: Attempt to grab a physics object.
