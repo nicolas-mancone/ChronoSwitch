@@ -6,6 +6,7 @@
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnTimelineIDChanged, uint8);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnVisorStateChanged, bool);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCanSwitchTimelineChanged, bool);
 
 /** Manages player-specific state that needs to be synchronized across the network,
  *  such as the current timeline and visor status.
@@ -25,6 +26,9 @@ public:
 	
 	/** Broadcasts locally whenever the Visor state is toggled. */
 	FOnVisorStateChanged OnVisorStateChanged;
+	
+	/** Broadcasts locally whenever the Timeline Switch ability is toggled. */
+	FOnCanSwitchTimelineChanged OnCanSwitchTimelineChanged;
 
 	// --- Getters ---
 
@@ -36,6 +40,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Timeline")
 	FORCEINLINE bool IsVisorActive() const { return bVisorActive; }
 	
+	/** Returns true if the timeline-switch is currently enabled. */
 	UFUNCTION(BlueprintCallable, Category = "Timeline")
 	FORCEINLINE bool CanSwitchTimeline() const { return bCanSwitchTimeline; }
 
@@ -48,6 +53,10 @@ public:
 	/** Initiates a visor state change request. Includes client-side prediction for immediate feedback. */
 	UFUNCTION(BlueprintCallable, Category = "Timeline")
 	void RequestVisorStateChange(bool bNewState);
+	
+	/** Initiates a visor state change request. Includes client-side prediction for immediate feedback. */
+	UFUNCTION(BlueprintCallable, Category = "Timeline")
+	void RequestCanSwitchTimelineChange(bool bNewState);
 
 	// --- Authority Setters (Server Side) ---
 
@@ -75,7 +84,7 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_VisorActive, BlueprintReadOnly, Category = "Timeline")
 	bool bVisorActive;
 	
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Timeline")
+	UPROPERTY(ReplicatedUsing = OnRep_CanSwitchTimeline, BlueprintReadOnly, Category = "Timeline")
 	bool bCanSwitchTimeline;
 	
 	/** Standard Unreal function for defining replicated properties. */
@@ -88,6 +97,9 @@ protected:
 	/** RepNotify function called on clients when bVisorActive is replicated. */
 	UFUNCTION()
 	void OnRep_VisorActive(bool bOldVisorActive);
+	
+	UFUNCTION()
+	void OnRep_CanSwitchTimeline(bool bOldCanSwitchTimeline);
 
 	// --- Server RPCs (Internal) ---
 
@@ -98,6 +110,9 @@ protected:
 	/** Server-side implementation for a visor state change request. */
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SetVisorActive(bool bNewState);
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SetCanSwitchTimeline(bool bNewState);
 
 	/** Multicast RPC to broadcast timeline changes immediately to all clients, bypassing replication delay. */
 	UFUNCTION(NetMulticast, Reliable)
@@ -112,4 +127,6 @@ public:
 private:
 	/** Internal helper to update the local state and broadcast the change. */
 	void NotifyVisorStateChanged(bool bNewState);
+	
+	void NotifyOnCanSwitchTimelineChanged(bool bNewState);
 };

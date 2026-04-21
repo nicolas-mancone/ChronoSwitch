@@ -1,4 +1,6 @@
 ﻿#include "ChronoSwitch/Public/Characters/ChronoSwitchCharacter.h"
+
+#include "EditorSupportDelegates.h"
 #include "GameFramework/PlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -6,7 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Game/ChronoSwitchPlayerState.h"
 #include "Blueprint/UserWidget.h"
-#include "Game/ChronoSwitchGameState.h"
+//#include "Game/ChronoSwitchGameState.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/PrimitiveComponent.h"
 #include "Engine/EngineTypes.h"
@@ -106,16 +108,24 @@ void AChronoSwitchCharacter::BeginPlay()
 	// UI is not managed by Server
 	if (IsLocallyControlled() && PlayerVisorWidgetClass)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Can Create Widget"));
 		// Create Widget from blueprint class
 		PlayerVisorWidget = CreateWidget<UPlayerVisorWidget>(GetWorld(), PlayerVisorWidgetClass);
 		
 		if (PlayerVisorWidget)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Created Widget"));
 			PlayerVisorWidget->AddToViewport();
 			PlayerVisorWidget->SetVisibility(ESlateVisibility::Visible);
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Emerald, TEXT("Added to Viewport"));
+			
+			AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>();
+			AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(CachedMyPlayerState);
+			AChronoSwitchPlayerState* OtherPS = Cast<AChronoSwitchPlayerState>(CachedOtherPlayerState);
+
+			if (GS)
+			{
+				GS->OnTimeSwitchModeChanged.AddDynamic(this, &AChronoSwitchCharacter::HandleModeChanged);
+				HandleModeChanged(GS->CurrentTimeSwitchMode);
+			}
+			
 		}
 	}
 }
@@ -219,6 +229,52 @@ void AChronoSwitchCharacter::ApplyCharacterEmissive()
 	{
 		MID->SetScalarParameterValue(FName("Emissive Intensity"), 1.0f);
 	}
+}
+
+#pragma endregion
+
+#pragma region UI
+
+void AChronoSwitchCharacter::HandleModeChanged(ETimeSwitchMode NewMode)
+{
+	if (!IsLocallyControlled())
+		return;
+	EWidgetSwitchMode SwitchMode;
+	switch (NewMode)
+	{
+	case ETimeSwitchMode::Personal:
+		SwitchMode = EWidgetSwitchMode::Self;
+		break;
+	case ETimeSwitchMode::CrossPlayer:
+		SwitchMode = EWidgetSwitchMode::Friend;
+		break;
+	default:
+		SwitchMode = EWidgetSwitchMode::Disabled;
+		break;
+	}
+	PlayerVisorWidget->UpdateMode(SwitchMode);
+}
+
+void AChronoSwitchCharacter::HandleCanSwitchTimelineChanged(bool bCanSwitchTimeline)
+{
+	if (!IsLocallyControlled())
+		return;
+	
+	PlayerVisorWidget->UpdateCanSwitch(bCanSwitchTimeline);
+}
+
+void AChronoSwitchCharacter::HandleSelfTimelineChanged(uint8 NewTimeline)
+{
+	if (!IsLocallyControlled())
+		return;
+	PlayerVisorWidget->UpdatePlayerTimeline(NewTimeline);
+}
+
+void AChronoSwitchCharacter::HandleOtherTimelineChanged(uint8 NewTimeline)
+{
+	if (!IsLocallyControlled())
+		return;
+	PlayerVisorWidget->UpdateOtherPlayerTimeline(NewTimeline); 
 }
 
 #pragma endregion
@@ -980,7 +1036,7 @@ void AChronoSwitchCharacter::HandleTimelineUpdate(uint8 NewTimelineID)
 	}
 
 	UpdatePlayerCollision();
-
+	
 	OnTimelineChangedCosmetic(NewTimelineID);
 }
 
@@ -1065,6 +1121,17 @@ void AChronoSwitchCharacter::TryCachePlayers()
 	
 	if (CachedMyPlayerState.IsValid() && CachedOtherPlayerState.IsValid())
 	{
+		// Adding UI Delegates
+		CachedMyPlayerState->OnTimelineIDChanged.AddUObject(this, &AChronoSwitchCharacter::HandleSelfTimelineChanged);
+		CachedMyPlayerState->OnCanSwitchTimelineChanged.AddUObject(this, &AChronoSwitchCharacter::HandleCanSwitchTimelineChanged);
+		
+		CachedOtherPlayerState->OnTimelineIDChanged.AddUObject(this, &AChronoSwitchCharacter::HandleOtherTimelineChanged);
+		
+		HandleSelfTimelineChanged(CachedMyPlayerState->GetTimelineID());
+		HandleCanSwitchTimelineChanged(CachedMyPlayerState->CanSwitchTimeline());
+		HandleOtherTimelineChanged(CachedOtherPlayerState->GetTimelineID());
+		
+		// Clear Timer
 		GetWorldTimerManager().ClearTimer(PlayerCachingTimer);
 	}
 }

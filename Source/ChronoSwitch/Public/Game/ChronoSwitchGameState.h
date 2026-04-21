@@ -23,6 +23,11 @@ enum class ETimeSwitchMode : uint8
 };
 
 /**
+ * Notifies player for UI changes
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeSwitchModeChanged, ETimeSwitchMode, NewMode);
+
+/**
  * Manages the global state of the game, specifically the active Time Switch Mode.
  * Handles the Global Timer logic when that mode is active.
  */
@@ -42,6 +47,9 @@ public:
 	/** Sets the current time switch mode. Can only be called on the server. */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Game Rules")
 	void SetTimeSwitchMode(ETimeSwitchMode NewMode);
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnTimeSwitchModeChanged OnTimeSwitchModeChanged;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Game Rules", meta = (DisplayPriority = "0"))
 	float GlobalSwitchTime = 5.0f;

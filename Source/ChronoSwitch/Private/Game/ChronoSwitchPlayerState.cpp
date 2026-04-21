@@ -60,6 +60,18 @@ void AChronoSwitchPlayerState::RequestVisorStateChange(bool bNewState)
 	Server_SetVisorActive(bNewState);
 }
 
+void AChronoSwitchPlayerState::RequestCanSwitchTimelineChange(bool bNewState)
+{
+	if (bCanSwitchTimeline == bNewState) return;
+
+	// Client-Side Prediction:
+	// Update the state locally immediately so the player feels zero latency.
+	NotifyOnCanSwitchTimelineChanged(bNewState);
+
+	// Send the request to the server to validate and replicate the change.
+	Server_SetCanSwitchTimeline(bNewState);
+}
+
 void AChronoSwitchPlayerState::SetTimelineID(uint8 NewID)
 {
 	// This function is the authoritative source for changing the timeline.
@@ -92,7 +104,10 @@ void AChronoSwitchPlayerState::SetVisorActive(bool bNewState)
 
 void AChronoSwitchPlayerState::SetCanSwitchTimeline(bool bNewState)
 {
-	bCanSwitchTimeline = bNewState;
+	if (HasAuthority())
+	{
+		NotifyOnCanSwitchTimelineChanged(bNewState);
+	}
 }
 
 void AChronoSwitchPlayerState::CopyProperties(APlayerState* PlayerState)
@@ -124,6 +139,16 @@ void AChronoSwitchPlayerState::NotifyVisorStateChanged(bool bNewState)
 	}
 }
 
+void AChronoSwitchPlayerState::NotifyOnCanSwitchTimelineChanged(bool bNewState)
+{
+	if (bCanSwitchTimeline != bNewState)
+	{
+		bCanSwitchTimeline = bNewState;
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Notify On CanSwitchTimeline Changed"));
+		OnCanSwitchTimelineChanged.Broadcast(bCanSwitchTimeline);
+	}
+}
+
 void AChronoSwitchPlayerState::OnRep_TimelineID(uint8 OldTimelineID)
 {
 	// Handle updates from the server.
@@ -141,6 +166,14 @@ void AChronoSwitchPlayerState::OnRep_VisorActive(bool bOldVisorActive)
 	if (bVisorActive != bOldVisorActive)
 	{
 		OnVisorStateChanged.Broadcast(bVisorActive);
+	}
+}
+
+void AChronoSwitchPlayerState::OnRep_CanSwitchTimeline(bool bOldVCanSwitchTimeline)
+{
+	if (bCanSwitchTimeline != bOldVCanSwitchTimeline)
+	{
+		OnCanSwitchTimelineChanged.Broadcast(bCanSwitchTimeline);
 	}
 }
 
@@ -165,6 +198,17 @@ void AChronoSwitchPlayerState::Server_SetVisorActive_Implementation(bool bNewSta
 }
 
 bool AChronoSwitchPlayerState::Server_SetVisorActive_Validate(bool bNewState)
+{
+	return true;
+}
+
+void AChronoSwitchPlayerState::Server_SetCanSwitchTimeline_Implementation(bool bNewState)
+{
+	// The server calls its own authoritative function to change the state.
+	SetCanSwitchTimeline(bNewState);
+}
+
+bool AChronoSwitchPlayerState::Server_SetCanSwitchTimeline_Validate(bool bNewState)
 {
 	return true;
 }

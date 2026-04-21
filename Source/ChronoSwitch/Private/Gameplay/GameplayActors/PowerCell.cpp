@@ -25,7 +25,7 @@ void APowerCell::Interact_Implementation(ACharacter* Interactor)
 
 FText APowerCell::GetInteractPrompt_Implementation()
 {
-	return FText::FromString("Grab Power Cell");
+	return FText::FromString("Press F to Grab Power Cell");
 }
 
 // Called every frame

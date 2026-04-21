@@ -55,7 +55,7 @@ void UChronoSwitchGameInstance::Shutdown()
 
 #pragma region Host Join Logic
 
-void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers)
+void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers, bool bIsLAN)
 {
 	IOnlineSessionPtr SessionInterface = GetSessionInterface();
 	if (!SessionInterface.IsValid())
@@ -78,7 +78,7 @@ void UChronoSwitchGameInstance::HostSession(int32 MaxPlayers)
 	}
 
 	FOnlineSessionSettings SessionSettings;
-	SessionSettings.bIsLANMatch = false;
+	SessionSettings.bIsLANMatch = bIsLAN;
 	SessionSettings.NumPublicConnections = MaxPlayers;
 	SessionSettings.bAllowJoinInProgress = true;
 	SessionSettings.bAllowJoinViaPresence = true;
@@ -115,7 +115,7 @@ void UChronoSwitchGameInstance::OnDestroySessionComplete(FName SessionName, bool
 	HostSession();
 }
 
-void UChronoSwitchGameInstance::FindJoinSession()
+void UChronoSwitchGameInstance::FindJoinSession(bool bIsLAN)
 {
 	IOnlineSessionPtr SessionInterface = GetSessionInterface();
 	if (!SessionInterface.IsValid())
@@ -125,6 +125,7 @@ void UChronoSwitchGameInstance::FindJoinSession()
 	}
 
 	SessionSearch = MakeShared<FOnlineSessionSearch>();
+	SessionSearch->bIsLanQuery = bIsLAN;
 	SessionSearch->MaxSearchResults = 10;
 	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
