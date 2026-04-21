@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Game/ChronoSwitchGameState.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/CanForceRelease.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -109,6 +110,19 @@ protected:
 #pragma region UI
 	UPROPERTY()
 	UPlayerVisorWidget* PlayerVisorWidget;
+	
+	UFUNCTION()
+	void HandleModeChanged(ETimeSwitchMode NewMode);
+	
+	UFUNCTION()
+	void HandleCanSwitchTimelineChanged(bool bCanSwitchTimeline);
+	
+	UFUNCTION()
+	void HandleSelfTimelineChanged(uint8 NewTimeline);
+	
+	UFUNCTION()
+	void HandleOtherTimelineChanged(uint8 NewTimeline);
+	
 #pragma endregion
 
 #pragma region Input
@@ -242,6 +256,9 @@ protected:
 	/** Server RPC: Validates and executes the release logic. */
 	UFUNCTION(Server, Reliable)
 	void Server_Interact(UObject* Object, ACharacter* Interactor);
+	
+	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
+	void OnInteracted(bool bSucceded);
 	
 	UFUNCTION(BlueprintImplementableEvent, Category = "Interaction")
 	void OnObjectGrabbed();

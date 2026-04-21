@@ -38,7 +38,7 @@ void ASwitchButton::Interact_Implementation(ACharacter* Interactor)
 
 FText ASwitchButton::GetInteractPrompt_Implementation()
 {
-	return FText::FromString("Press F to press button");
+	return FText::FromString("Press F to activate button");
 }
 
 void ASwitchButton::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

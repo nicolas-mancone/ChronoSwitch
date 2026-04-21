@@ -48,6 +48,6 @@ void ASimpleButton::Interact_Implementation(ACharacter* Interactor)
 
 FText ASimpleButton::GetInteractPrompt_Implementation()
 {
-	return FText::FromString("Press Button"); 
+	return FText::FromString("Press F to activate button"); 
 }
 
