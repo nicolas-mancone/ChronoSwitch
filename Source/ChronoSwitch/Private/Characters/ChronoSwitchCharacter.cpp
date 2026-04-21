@@ -17,7 +17,7 @@
 #include "Gameplay/TimelineActors/TimelineBaseActor.h"
 #include "Gameplay/TimelineActors/PhysicsTimelineActor.h"
 #include "Camera/PlayerCameraManager.h"
-#include "UI/InteractPromptWidget.h"
+#include "UI/PlayerVisorWidget.h"
 
 #pragma region Lifecycle
 
@@ -104,15 +104,15 @@ void AChronoSwitchCharacter::BeginPlay()
 	}
 	
 	// UI is not managed by Server
-	if (IsLocallyControlled() && InteractWidgetClass)
+	if (IsLocallyControlled() && PlayerVisorWidgetClass)
 	{
 		// Create Widget from blueprint class
-		InteractWidget = CreateWidget<UInteractPromptWidget>(GetWorld(), InteractWidgetClass);
+		PlayerVisorWidget = CreateWidget<UPlayerVisorWidget>(GetWorld(), PlayerVisorWidgetClass);
 		
-		if (InteractWidget)
+		if (PlayerVisorWidget)
 		{
-			InteractWidget->AddToViewport();
-			InteractWidget->SetVisibility(ESlateVisibility::Collapsed);
+			PlayerVisorWidget->AddToViewport();
+			PlayerVisorWidget->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 }
@@ -747,7 +747,7 @@ void AChronoSwitchCharacter::OnTickSenseInteractable()
 	
 	// Checks if the SensedActor changed
 	SensedActor = NewSensedActor;
-	if (InteractWidget)
+	if (PlayerVisorWidget)
 	{
 		UpdateInteractWidget();
 	}
@@ -770,15 +770,15 @@ AActor* AChronoSwitchCharacter::ValidateInteractable(AActor* HitActor, UPrimitiv
 
 void AChronoSwitchCharacter::UpdateInteractWidget()
 {
-	if (!SensedActor && InteractWidget)
+	if (!SensedActor && PlayerVisorWidget)
 	{
-		InteractWidget->SetVisibility(ESlateVisibility::Collapsed);
+		PlayerVisorWidget->SetVisibility(ESlateVisibility::Collapsed);
 		return;
 	}
 	// Only sets Visibility and Text if SensedActor is valid and has changed
 	FText Text = IInteractable::Execute_GetInteractPrompt(SensedActor);
-	InteractWidget->SetPromptText(Text);
-	InteractWidget->SetVisibility(ESlateVisibility::Visible);
+	PlayerVisorWidget->SetPromptText(Text);
+	PlayerVisorWidget->SetPromptVisibility(ESlateVisibility::Visible);
 }
 
 /** Performs a box trace from the camera to find an interactable object. */

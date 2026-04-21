@@ -13,7 +13,7 @@ class UTimelineComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-class UInteractPromptWidget;
+class UPlayerVisorWidget;
 class AChronoSwitchPlayerState;
 class USkeletalMesh;
 class UAnimInstance;
@@ -43,7 +43,7 @@ public:
 	
 #pragma region UI
 	UPROPERTY(EditDefaultsOnly, Category="UI")
-	TSubclassOf<UInteractPromptWidget> InteractWidgetClass;
+	TSubclassOf<UPlayerVisorWidget> PlayerVisorWidgetClass;
 #pragma endregion
 
 
@@ -108,7 +108,7 @@ protected:
 
 #pragma region UI
 	UPROPERTY()
-	UInteractPromptWidget* InteractWidget;
+	UPlayerVisorWidget* PlayerVisorWidget;
 #pragma endregion
 
 #pragma region Input
