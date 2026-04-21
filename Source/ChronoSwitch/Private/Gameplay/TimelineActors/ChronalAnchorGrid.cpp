@@ -103,7 +103,7 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 				}
 				if (EnteringCrossingSettings.SwitchMode != ECrossingEffectMode::None)
 				{
-					PS->SetCanSwitchTimeline(static_cast<bool>(EnteringCrossingSettings.SwitchMode));
+					PS->RequestCanSwitchTimelineChange(static_cast<bool>(EnteringCrossingSettings.SwitchMode));
 				}
 				
 				ManageSoundOnCrossing();
@@ -125,7 +125,7 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 				}
 				if (ExitingCrossingSettings.SwitchMode != ECrossingEffectMode::None)
 				{
-					PS->SetCanSwitchTimeline(static_cast<bool>(ExitingCrossingSettings.SwitchMode));
+					PS->RequestCanSwitchTimelineChange(static_cast<bool>(ExitingCrossingSettings.SwitchMode));
 				}
 				
 				ManageSoundOnCrossing();

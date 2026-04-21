@@ -39,6 +39,9 @@ void AChronoSwitchGameState::SetTimeSwitchMode(ETimeSwitchMode NewMode)
 	{
 		CurrentTimeSwitchMode = NewMode; // Updates the value and triggers replication.
 
+		// Force broadcast from server
+		OnRep_TimeSwitchMode();
+		
 		// Manage the Global Timer based on the new mode.
 		// First, ensure any existing timer is cleared to prevent overlapping logic.
 		GetWorld()->GetTimerManager().ClearTimer(GlobalSwitchTimerHandle);
@@ -55,6 +58,8 @@ void AChronoSwitchGameState::OnRep_TimeSwitchMode()
 {
 	// This function runs on clients when the server updates CurrentTimeSwitchMode.
 	// Use this for client-side updates (e.g., updating a UI icon or playing a sound).
+	
+	OnTimeSwitchModeChanged.Broadcast(CurrentTimeSwitchMode);
 }
 
 void AChronoSwitchGameState::PerformGlobalSwitch()

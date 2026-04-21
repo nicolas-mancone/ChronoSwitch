@@ -28,10 +28,10 @@ public:
 	virtual void Shutdown() override;
 	
 	UFUNCTION(BlueprintCallable)
-	void HostSession(int32 MaxPlayers = 2);
+	void HostSession(int32 MaxPlayers = 2, bool bIsLAN = false);
 
 	UFUNCTION(BlueprintCallable)
-	void FindJoinSession();
+	void FindJoinSession(bool bIsLAN = false);
 	
 	UFUNCTION(BlueprintCallable)
 	void OpenExternalInviteDialog();
