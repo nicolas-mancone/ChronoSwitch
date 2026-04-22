@@ -17,9 +17,9 @@ void AMainMenuController::BeginPlay()
 	bShowMouseCursor = true;
 	SetInputMode(FInputModeUIOnly());
 	
-	SessionsWidget = CreateWidget<USessionsWidget>(this, SessionsWidgetClass);
-	LevelSelectionWidget = CreateWidget<ULevelSelectionWidget>(this, LevelSelectionWidgetClass);
-	InviteReceivedWidget = CreateWidget<UInviteReceivedWidget>(this, InviteReceivedWidgetClass);
+	SessionsWidget = CreateWidget<USessionsWidget>(GetWorld(), SessionsWidgetClass);
+	LevelSelectionWidget = CreateWidget<ULevelSelectionWidget>(GetWorld(), LevelSelectionWidgetClass);
+	InviteReceivedWidget = CreateWidget<UInviteReceivedWidget>(GetWorld(), InviteReceivedWidgetClass);
 	
 	if (SessionsWidget &&  LevelSelectionWidget)
 	{
