@@ -144,7 +144,7 @@ void AChronoSwitchPlayerState::NotifyOnCanSwitchTimelineChanged(bool bNewState)
 	if (bCanSwitchTimeline != bNewState)
 	{
 		bCanSwitchTimeline = bNewState;
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Notify On CanSwitchTimeline Changed"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Notify On CanSwitchTimeline Changed"));
 		OnCanSwitchTimelineChanged.Broadcast(bCanSwitchTimeline);
 	}
 }

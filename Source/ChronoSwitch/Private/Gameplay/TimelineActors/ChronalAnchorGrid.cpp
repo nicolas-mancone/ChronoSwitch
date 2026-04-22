@@ -37,7 +37,7 @@ void AChronalAnchorGrid::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Forward Vector:\nx: %.2f, y: %.2f, z: %.2f"), GetActorForwardVector().X, GetActorForwardVector().Y, GetActorForwardVector().Z));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, FString::Printf(TEXT("Forward Vector:\nx: %.2f, y: %.2f, z: %.2f"), GetActorForwardVector().X, GetActorForwardVector().Y, GetActorForwardVector().Z));
 	
 	if (BarrierMesh)
 	{
@@ -55,7 +55,7 @@ void AChronalAnchorGrid::OnBeginOverlap(UPrimitiveComponent* Comp, AActor* Other
 	
 	if (OtherComp != Player->GetCapsuleComponent()) return;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnBeginOverlap"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnBeginOverlap"));
 
 	FVector EntryNormal = GetInteractionNormal(Player);
 	StoredEntryNormals.Add(Player, EntryNormal);
@@ -70,7 +70,7 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 	
 	if (OtherComp != Player->GetCapsuleComponent()) return;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnEndOverlap"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("OnEndOverlap"));
 
 	// The map returns a pointer to the value
 	FVector* EntryNormalPtr = StoredEntryNormals.Find(Player);
@@ -92,7 +92,7 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 		{
 			if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Entered"));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Entered"));
 				if (EnteringCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
 				{
 					PS->RequestTimelineChange(static_cast<uint8>(EnteringCrossingSettings.TargetForcedTimeline), true);
@@ -112,7 +112,7 @@ void AChronalAnchorGrid::OnEndOverlap(UPrimitiveComponent* Comp, AActor* Other, 
 		// Player is exiting the C.A.G Zone (Moving against direction of Arrow)
 		else
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Exited"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Orange, TEXT("Exited"));
 			if (AChronoSwitchPlayerState* PS = Cast<AChronoSwitchPlayerState>(Player->GetPlayerState()))
 			{
 				if (ExitingCrossingSettings.TargetForcedTimeline != EForcedTimeline::None)
