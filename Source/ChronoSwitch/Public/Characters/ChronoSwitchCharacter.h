@@ -126,6 +126,9 @@ protected:
 #pragma endregion
 
 #pragma region Input
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=Input)
+	bool bIsPaused = false;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 	
@@ -146,6 +149,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
 	TObjectPtr<UInputAction> SprintAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Input)
+	TObjectPtr<UInputAction> TogglePauseAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	float LookPitchMin = -55.0f;
@@ -174,6 +180,9 @@ protected:
 	/** Called when the sprint input is completed. */
 	UFUNCTION()
 	void StopSprinting();
+	
+	UFUNCTION(BlueprintCallable)
+	void TogglePause();
 	
 	/** Handles interaction input (Release > Interact > Grab). */
 	UFUNCTION()

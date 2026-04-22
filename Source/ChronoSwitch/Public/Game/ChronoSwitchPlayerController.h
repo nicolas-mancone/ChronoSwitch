@@ -15,4 +15,6 @@ class CHRONOSWITCH_API AChronoSwitchPlayerController : public APlayerController
 	GENERATED_BODY()
 public:
 	virtual void BeginPlay() override;
+	
+	void ChangeInputMode(bool bIsPaused);
 };

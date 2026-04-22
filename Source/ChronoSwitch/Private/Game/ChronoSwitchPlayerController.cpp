@@ -7,9 +7,20 @@ void AChronoSwitchPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (IsLocalController())
+	ChangeInputMode(false);
+}
+
+void AChronoSwitchPlayerController::ChangeInputMode(bool bIsPaused)
+{
+	if (!IsLocalController()) // Should be useless
+		return;
+	bShowMouseCursor = bIsPaused;
+	if (bIsPaused)
 	{
-		bShowMouseCursor = false;
+		SetInputMode(FInputModeUIOnly());
+	}
+	else
+	{
 		SetInputMode(FInputModeGameOnly());
 	}
 }

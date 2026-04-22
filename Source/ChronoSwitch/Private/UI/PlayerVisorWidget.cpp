@@ -12,6 +12,19 @@ void UPlayerVisorWidget::NativeConstruct()
 	UpdateImages();
 }
 
+void UPlayerVisorWidget::TogglePauseMenu(bool bIsPaused)
+{
+	if (bIsPaused)
+	{
+		PauseMenuSwitcher->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		PauseMenuSwitcher->SetVisibility(ESlateVisibility::Hidden);
+		PauseMenuSwitcher->SetActiveWidgetIndex(0);
+	}
+}
+
 void UPlayerVisorWidget::SetPromptText(const FText& Text)
 {
 	if (PromptTextBlock)

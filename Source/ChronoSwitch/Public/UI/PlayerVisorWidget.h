@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Characters/ChronoSwitchCharacter.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/WidgetSwitcher.h"
 #include "PlayerVisorWidget.generated.h"
 
 UENUM(BlueprintType)
@@ -61,7 +63,13 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	FWidgetImageVariants FriendImages;
 	
+	UPROPERTY(BlueprintReadOnly)
+	AChronoSwitchCharacter* OwningCharacter;
+	
 	virtual void NativeConstruct() override;
+	
+	UFUNCTION(BlueprintCallable)
+	void TogglePauseMenu(bool bIsPaused);
 	
 	UFUNCTION(BlueprintCallable)
 	void SetPromptText(const FText& Text);
@@ -95,6 +103,9 @@ protected:
 	
 	UPROPERTY(meta = (BindWidget))
 	UImage* FriendModeImage;
+	
+	UPROPERTY(meta = (BindWidget))
+	UWidgetSwitcher* PauseMenuSwitcher;
 	
 	UFUNCTION(BlueprintCallable)
 	void UpdateImages();

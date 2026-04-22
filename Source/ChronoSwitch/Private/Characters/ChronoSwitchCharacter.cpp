@@ -19,6 +19,7 @@
 #include "Gameplay/TimelineActors/TimelineBaseActor.h"
 #include "Gameplay/TimelineActors/PhysicsTimelineActor.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Game/ChronoSwitchPlayerController.h"
 #include "UI/PlayerVisorWidget.h"
 
 #pragma region Lifecycle
@@ -113,6 +114,7 @@ void AChronoSwitchCharacter::BeginPlay()
 		
 		if (PlayerVisorWidget)
 		{
+			PlayerVisorWidget->OwningCharacter = this;
 			PlayerVisorWidget->AddToViewport();
 			PlayerVisorWidget->SetVisibility(ESlateVisibility::Visible);
 			
@@ -328,6 +330,11 @@ void AChronoSwitchCharacter::SetupPlayerInputComponent(UInputComponent* PlayerIn
 			EnhancedInput->BindAction(SprintAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::StartSprinting);
 			EnhancedInput->BindAction(SprintAction, ETriggerEvent::Completed, this, &AChronoSwitchCharacter::StopSprinting);
 		}
+		
+		if (TogglePauseAction)
+		{
+			EnhancedInput->BindAction(TogglePauseAction, ETriggerEvent::Started, this, &AChronoSwitchCharacter::TogglePause);
+		}
 	}
 }
 
@@ -382,6 +389,18 @@ void AChronoSwitchCharacter::StopSprinting()
 {
 	TargetWalkSpeed = WalkSpeed;
 	Server_SetMaxWalkSpeed(WalkSpeed);
+}
+
+void AChronoSwitchCharacter::TogglePause()
+{
+	bIsPaused = !bIsPaused;
+	
+	AChronoSwitchPlayerController* PC = GetController<AChronoSwitchPlayerController>();
+	if (PC)
+	{
+		PC->ChangeInputMode(bIsPaused);
+	}
+	PlayerVisorWidget->TogglePauseMenu(bIsPaused);
 }
 
 void AChronoSwitchCharacter::OnTimeSwitch()

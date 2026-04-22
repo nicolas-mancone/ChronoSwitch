@@ -49,7 +49,7 @@ void UChronoSwitchGameInstance::Shutdown()
 		SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
 		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
 	}
-
+	
 	Super::Shutdown();
 }
 
@@ -136,6 +136,49 @@ void UChronoSwitchGameInstance::FindJoinSession(bool bIsLAN)
 	if (!SessionInterface->FindSessions(0, SessionSearch.ToSharedRef()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FindSessions returned false"));
+	}
+}
+
+void UChronoSwitchGameInstance::QuitSession()
+{
+	IOnlineSessionPtr SessionInterface = GetSessionInterface();
+
+	if (!SessionInterface.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("QuitSession: SessionInterface invalid, going to menu anyway"));
+		ReturnToMainScreen();
+		return;
+	}
+
+	if (SessionInterface->GetNamedSession(NAME_GameSession) != nullptr)
+	{
+		SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+		DestroySessionCompleteDelegateHandle = SessionInterface->AddOnDestroySessionCompleteDelegate_Handle(
+			FOnDestroySessionCompleteDelegate::CreateUObject(this, &UChronoSwitchGameInstance::OnLeaveSessionComplete));
+
+		SessionInterface->DestroySession(NAME_GameSession);
+	}
+	else
+	{
+		ReturnToMainScreen();
+	}
+	
+}
+
+void UChronoSwitchGameInstance::ReturnToMainScreen()
+{
+	if (!MainMenuMap.IsNull())
+	{
+		const FString MainMenuURL = MainMenuMap.ToSoftObjectPath().GetLongPackageName();
+
+		if (APlayerController* PC = GetFirstLocalPlayerController())
+		{
+			PC->ClientTravel(MainMenuURL, ETravelType::TRAVEL_Absolute);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("MainMenuMap not set!"));
 	}
 }
 
@@ -246,6 +289,16 @@ void UChronoSwitchGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoin
 	{
 		UE_LOG(LogTemp, Warning, TEXT("JoinSession failed with result: %d"), static_cast<int32>(Result));
 	}
+}
+
+void UChronoSwitchGameInstance::OnLeaveSessionComplete(FName Name, bool bWasSuccessful)
+{
+	IOnlineSessionPtr SessionInterface = GetSessionInterface();
+	if (SessionInterface.IsValid())
+	{
+		SessionInterface->ClearOnDestroySessionCompleteDelegate_Handle(DestroySessionCompleteDelegateHandle);
+	}
+	ReturnToMainScreen();
 }
 
 void UChronoSwitchGameInstance::OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> PersonInviting, const FOnlineSessionSearchResult& InviteResult)
