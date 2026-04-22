@@ -68,6 +68,12 @@ public:
 	
 	virtual void NativeConstruct() override;
 	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void MakeTutorialAppear(const FText& NewText);
+	
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable)
+	void MakeTutorialDisappear();
+	
 	UFUNCTION(BlueprintCallable)
 	void TogglePauseMenu(bool bIsPaused);
 	

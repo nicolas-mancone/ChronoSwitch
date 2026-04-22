@@ -108,7 +108,7 @@ protected:
 #pragma endregion
 
 #pragma region UI
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	UPlayerVisorWidget* PlayerVisorWidget;
 	
 	UFUNCTION()
