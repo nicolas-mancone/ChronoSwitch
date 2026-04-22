@@ -17,7 +17,7 @@ void AChronoSwitchGameMode::StartPlay()
 
 	if (GEngine)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("GameMode avviato correttamente"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("GameMode avviato correttamente"));
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("AChronoSwitchGameMode::StartPlay chiamato con successo"));

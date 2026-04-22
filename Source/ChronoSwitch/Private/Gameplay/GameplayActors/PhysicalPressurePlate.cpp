@@ -46,7 +46,7 @@ void APhysicalPressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedCompo
 	Count++;
 	if (Count == 1)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
 		OnPressurePlatePressed();
 		ActivateObject();
 	}
@@ -60,7 +60,7 @@ void APhysicalPressurePlate::OnEndOverlap(UPrimitiveComponent* OverlappedCompone
 	Count--;
 	if (Count == 0)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("End Collision"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("End Collision"));
 		OnPressurePlateReleased();
 		ActivateObject();
 	}

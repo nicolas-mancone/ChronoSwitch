@@ -46,12 +46,12 @@ void APressurePlate::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	if (AChronoSwitchGameState* GS = GetWorld()->GetGameState<AChronoSwitchGameState>())
 	{
 		GS->SharedPlayersOnPlate++;
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Begin Collision"));
 		if (GS->SharedPlayersOnPlate == 1)
 		{
 			OnPressurePlatePressed();
 			GS->SetGlobalTimeline(TimelineToSet);
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Switched Timeline"));
 		}
 	}
 }
